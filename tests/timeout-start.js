@@ -12,15 +12,15 @@ if (qcluster.isMaster) {
     // sync returns the child process that gets killed on timeout
     var child = qm.forkChild();
     setTimeout(function() {
-console.log("AR: second child pid", child._pid);
         console.log("child exists?", qm.existsProcess(child._pid));
-    }, 15)
-
-    setTimeout(process.exit, 30);
+        setImmediate(process.exit);
+    }, 40)
 }
 else {
     console.log("child running, pid %d", process.pid);
     setTimeout(function() {
         qcluster.sendToParent('started');
     }, 20);
+    // wait for parent to kill us for not having started within 10ms
+    setTimeout(process.exit, 1000);
 }
