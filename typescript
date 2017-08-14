@@ -1,0 +1,62 @@
+Script started on Mon 14 Aug 2017 05:24:36 PM EDT
+% git pull origin `git b`[7Gfetch origin[K[3G[Kqnit test-qcluster.js 
+
+[1mtest-qcluster.js[22m
+ - should export createCluster (1.390ms)
+ - should export isMaster (0.278ms)
+ - should export sendTo, sendToParent (0.218ms)
+ - should provide log that bypasses stdout (1.202ms)
+ - createCluster - should create QCluster object (0.176ms)
+ - createCluster - should accept options (0.147ms)
+ - sendTo - should returns send errors (0.171ms)
+ - sendToParent - should invoke sendTo with process (7.447ms)
+ - sendToParent - should invoke process.send (0.127ms)
+ - findPid - should return child with pid (0.127ms)
+ - findPid - should return undefined if pid not found (0.072ms)
+ - _removePid - should remove child from children (0.128ms)
+AR: _forking
+ - forkChild - should use cluster.fork (0.507ms)
+AR: _forking
+ - forkChild - should add to children (0.203ms)
+AR: _forking
+ - forkChild - errors - should throw Error on sync fork error (0.128ms)
+AR: _forking
+ - forkChild - errors - should return Error on async fork error (0.174ms)
+AR: _forking
+AR: done _forking
+AR: queued signals []
+ - tests - should quicktest (144.481ms)
+AR: _forking
+AR: done _forking
+AR: queued signals []
+ - tests - should fork child (133.157ms)
+AR: _forking
+AR: done _forking
+AR: queued signals []
+ - tests - should kill child (135.190ms)
+AR: _forking
+AR: done _forking
+AR: queued signals []
+ - tests - should exists child (141.333ms)
+AR: _forking
+AR: _forking
+ - tests - should timeout start (98.462ms)
+AR: _forking
+AR: parent
+AR: ==> SIGINT 1502745882873
+AR: child 1502745882933
+AR: done _forking
+AR: queued signals []
+ X tests - should relay fork signals (2002.179ms)
+
+Error: the test or one of its setUp/tearDowns did not call done() within 2000 ms
+    at Timeout._onTimeout (/hd1/home/andras/node/git/qnit/lib/qnit.js:343:19)
+    at ontimeout (timers.js:386:14)
+    at tryOnTimeout (timers.js:250:5)
+    at Timer.listOnTimeout (timers.js:214:5)
+
+
+OK: 14 assertions, 22 tests, 1 files, 0 skipped (2675.919ms)
+% ^Dexit
+
+Script done on Mon 14 Aug 2017 05:24:45 PM EDT

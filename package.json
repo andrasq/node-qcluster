@@ -1,0 +1,19 @@
+{
+  "name": "qcluster",
+  "version": "0.0.1",
+  "description": "robust worker cluster management",
+  "main": "qcluster.js",
+  "license": "Apache-2.0",
+  "keywords": [ "robust", "cluster", "Andras", "race-free", "deterministic" ],
+  "repository": "https://github.com/andrasq/node-qcluster",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "qnit": "0.17.1"
+  },
+  "scripts": {
+    "test": "qnit test-*",
+    "coverage": "nyc --reporter text --reporter lcov qnit test-*",
+    "clean": "rm -rf .nyc_output coverage"
+  }
+}
