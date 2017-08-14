@@ -25,8 +25,8 @@ else {
     qcluster.sendToParent('started');
     process.on('SIGTERM', function() {
         console.log("child killed, pid %d", process.pid);
+        setImmediate(process.exit);
     })
-    setTimeout(process.exit, 10);
 }
 
 // nb: 7 ms to run the quicktest??
