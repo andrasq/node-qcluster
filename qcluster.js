@@ -156,7 +156,7 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
 
         if (optionalCallback) optionalCallback(null, child);
     }
-    child.once('started', onChildStarted);
+    child.on('started', onChildStarted);
     // TODO: also act on 'listening' if options.startedIfListening
 
     function onChildStartTimeout( ) {

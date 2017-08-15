@@ -242,6 +242,18 @@ module.exports = {
             })
         },
 
+        'should ignore multiple started': function(t) {
+            this.runTest('ignore-multiple-started', function(err, output) {
+                output = output.toString();
+                var pos1 = output.indexOf('child started');
+                t.ok(pos1 >= 0);
+                var pos2 = output.indexOf('child started', pos1 + 13);
+                t.ok(pos2 === -1);
+                t.contains(output, 'startedCount = 3');
+                t.done();
+            })
+        },
+
         'should relay fork signals': function(t) {
             this.runTest('relay-fork-signals', function(err, output) {
                 t.contains(output, 'queued signal: SIGINT');
