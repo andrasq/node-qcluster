@@ -17,10 +17,12 @@ if (qcluster.isMaster) {
     }, 40)
 }
 else {
+    // note: timed out child processes are killed with SIGKILL, which breaks its coverage stats
+    // so this "else" section appears not to have been run at all; this is not correct.
     console.log("child running, pid %d", process.pid);
     setTimeout(function() {
         qcluster.sendToParent('started');
-    }, 20);
+    }, 2000);
     // wait for parent to kill us for not having started within 10ms
     setTimeout(process.exit, 1000);
 }

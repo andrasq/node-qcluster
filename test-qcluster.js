@@ -236,6 +236,8 @@ module.exports = {
 
         'should timeout start': function(t) {
             this.runTest('timeout-start', function(err, output) {
+                // note: child is killed before it writes to stdout
+                // t.contains(output, 'child running');
                 t.contains(output, 'error: start timeout');
                 t.contains(output, 'child exists? false');
                 t.done();
