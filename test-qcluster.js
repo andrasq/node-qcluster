@@ -264,6 +264,14 @@ module.exports = {
             })
         },
 
+        'should relay stop': function(t) {
+            this.runTest('relay-stop', function(err, output) {
+                t.contains(output, 'callCount = 2');
+                t.contains(output, 'signal = SIGSTOP');
+                t.done();
+            })
+        },
+
         'should relay signals': function(t) {
             this.runTest('relay-signals', function(err, output) {
                 t.contains(output, 'child running');
