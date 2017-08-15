@@ -1,5 +1,5 @@
-quickq
-======
+qcluster
+========
 
 [![Build Status](https://api.travis-ci.org/andrasq/node-qcluster.svg?branch=master)](https://travis-ci.org/andrasq/node-qcluster?branch=master)
 [![Coverage Status](https://codecov.io/github/andrasq/node-qcluster/coverage.svg?branch=master)](https://codecov.io/github/andrasq/node-qcluster?branch=master)
@@ -7,3 +7,11 @@ quickq
 Robust worker cluster management.
 
 (work in progress)
+
+
+## Summary
+
+    const qcluster = require('qcluster');
+    const master = qcluster.createCluster();
+
+    var child = master.forkChild();
