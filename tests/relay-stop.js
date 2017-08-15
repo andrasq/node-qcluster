@@ -20,7 +20,7 @@ function runTest() {
                 // note: if the master exits, execSync() still does not return until child finishes too.
                 // note: if the master exits, it still lets the child finish before exec() returns
                 setImmediate(process.exit);
-            }, 0)
+            }, 50)
         })
     }
     else {
