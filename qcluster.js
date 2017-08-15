@@ -140,9 +140,10 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
     }
     child._pid = child.process.pid;
 
+    // re-emit child exit events as cluster events
     child.once('exit', function() {
         self._removePid(child._pid);
-        self.emit('quit', child);
+        self.emit('exit', child);
     })
 
     child.on('message', function(msg) {
@@ -282,7 +283,7 @@ qcluster = {
     QCluster: QCluster,
     _delayExit: function(ms) {
         // a 0 timeout can swallow pending console output
-        setTimeout(process.exit, ms || 1);
+        setTimeout(process.exit, ms || 5);
     },
 }
 

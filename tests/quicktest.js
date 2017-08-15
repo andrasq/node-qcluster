@@ -10,15 +10,13 @@ if (qcluster.isMaster) {
             console.log("child started, pid %d", child.process.pid)
             qm.killChild(child);
         })
-        qm.once('quit', function(child) {
-            console.log("child quit, pid %d", child._pid);
+        qm.once('exit', function(child) {
+            console.log("child exited, pid %d", child._pid);
             if (!qm.children.length) {
                 console.log("quicktest done.");
             }
         })
     })
-    // wait 1 tick to allow the signals to fire and the test to run
-    setTimeout(function(){}, 1);
 }
 else {
     console.log("child running, pid %d", process.pid);

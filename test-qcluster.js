@@ -204,7 +204,7 @@ module.exports = {
                 t.contains(output, 'child started');
                 t.contains(output, 'child running');
                 t.contains(output, 'child killed');
-                t.contains(output, 'child quit');
+                t.contains(output, 'child exited');
                 t.contains(output, 'quicktest done.');
                 t.done();
             })
