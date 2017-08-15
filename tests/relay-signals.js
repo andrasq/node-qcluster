@@ -17,7 +17,7 @@ function runTest() {
             // verify that signal send after child has started is received by child
             setTimeout(function() {
                 console.log("child exists?", qm.existsProcess(child._pid));
-                setImmediate(process.exit)
+                qcluster._delayExit();
             }, 50);
             // TODO: race condition: 50ms maybe not enough for child to act on signal
         })
@@ -29,7 +29,7 @@ function runTest() {
         console.log("child running, pid %d", process.pid);
         process.once('SIGINT', function() {
             console.log("child SIGINT");
-            setTimeout(process.exit, 2);
+            qcluster._delayExit();
         })
     }
 }

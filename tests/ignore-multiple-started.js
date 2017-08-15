@@ -14,12 +14,12 @@ if (qcluster.isMaster) {
     })
     child.once('exit', function() {
         console.log("startedCount = %d", startedCount);
-        setImmediate(process.exit);
+        qcluster._delayExit();
     });
 }
 else {
     qcluster.sendToParent('started');
     qcluster.sendToParent('started');
     qcluster.sendToParent('started');
-    setImmediate(process.exit);
+    qcluster._delayExit();
 }

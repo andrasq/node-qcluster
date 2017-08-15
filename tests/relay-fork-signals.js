@@ -11,6 +11,7 @@ function runTest() {
         // verify that signal sent before child has started is queued and re-sent
         var spy = qmock.spyOnce(qm._signalsQueued, 'push');
         child.on('started', function() {
+            spy.restore();
             console.log("queued signal: %s", spy.callArguments[0]);
             setTimeout(function() {
                 console.log("child exists?", qm.existsProcess(child._pid));
@@ -25,7 +26,7 @@ function runTest() {
         console.log("child running, pid %d", process.pid);
         process.once('SIGINT', function() {
             console.log("child SIGINT");
-            setImmediate(process.exit);
+            qcluster._delayExit();
         })
         qcluster.sendToParent('started');
     }

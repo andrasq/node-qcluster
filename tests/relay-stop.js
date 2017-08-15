@@ -15,17 +15,25 @@ function runTest() {
             process.kill(process.pid, 'SIGTSTP');
 
             setTimeout(function() {
+                spy.restore();
+                process.kill(process.pid, 'SIGCONT');
                 console.log("callCount = %d", spy.callCount);
                 console.log("signal =", spy.callArguments[1]);
-                // note: if the master exits, execSync() still does not return until child finishes too.
-                // note: if the master exits, it still lets the child finish before exec() returns
-                setImmediate(process.exit);
-            }, 200)
-            // it can take a while for the second kill to arrive, wait 200ms
+
+                // note: from the cmdline, the child gets a 'disconnect' event on parent exit,
+                // which invokes process.exit().  From the unit tests, there is no disconnect,
+                // and exec() hangs until the test suite exits.  The child process.exit() also fails to run.
+                // Work around this by explicitly killing the child process.
+                setTimeout(function() {
+                    process.kill(child._pid, 'SIGKILL');
+                    process.exit();
+                }, 1)
+            }, 10)
+            // note: if the child exits too soon, the SIGCONT will not find it in qm.children[]
         })
     }
     else {
         qcluster.sendToParent('started');
-        setImmediate(process.exit);
+        qcluster._delayExit();
     }
 }

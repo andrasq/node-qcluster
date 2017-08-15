@@ -278,7 +278,11 @@ qcluster = {
     sendToParent: QCluster.sendToParent,
     log: QCluster.log,
 
+    // for testing:
     QCluster: QCluster,
+    _delayExit: function(ms) {
+        setTimeout(process.exit, ms || 0);
+    },
 }
 
 QCluster.prototype = QCluster.prototype;

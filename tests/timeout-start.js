@@ -13,7 +13,7 @@ if (qcluster.isMaster) {
     var child = qm.forkChild();
     setTimeout(function() {
         console.log("child exists?", qm.existsProcess(child._pid));
-        setImmediate(process.exit);
+        qcluster.delayExit();
     }, 40)
 }
 else {

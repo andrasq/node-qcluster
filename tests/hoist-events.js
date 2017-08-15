@@ -40,7 +40,7 @@ else {
     })
     process.once('quit', function() {
         console.log("child: got quit");
-        setImmediate(process.exit)
+        qcluster._delayExit();
     })
     process.once('other', function() {
         console.log("child: got other");
