@@ -281,7 +281,8 @@ qcluster = {
     // for testing:
     QCluster: QCluster,
     _delayExit: function(ms) {
-        setTimeout(process.exit, ms || 0);
+        // a 0 timeout can swallow pending console output
+        setTimeout(process.exit, ms || 1);
     },
 }
 
