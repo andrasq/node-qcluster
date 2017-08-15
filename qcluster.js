@@ -50,6 +50,17 @@ QCluster.log = function log( /* VARARGS */ ) {
     fs.writeFileSync("/dev/tty", util.format.apply(util, arguments) + '\n', {flag: 'a'});
 }
 
+/**
+// return a function that waits to be called n times, then calls callback
+QCluster._expectCallbacks = function _expectCallbacks( n, timeout, callback ) {
+    var count = 0, done = 0;
+    return function() {
+        var watchdog = setTimeout(function(){ if (!done++) return callback(new Error("timeout")) });
+        if ((err || ++count >= n) && !done++) { clearTimeout(watchdog); return callback(err) }
+    }
+}
+**/
+
 QCluster._callOnce = function _callOnce( func ) {
     var called = false;
     return function( a, b ) {
@@ -255,17 +266,6 @@ QCluster.prototype._removePid = function _removePid( pid ) {
     }
     this.children.length = i;
 }
-
-/**
-// return a function that waits to be called n times, then calls callback
-QCluster.prototype._expectCallbacks = function _expectCallbacks( n, timeout, callback ) {
-    var count = 0, done = 0;
-    return function() {
-        var watchdog = setTimeout(function(){ if (!done++) return callback(new Error("timeout")) });
-        if ((err || ++count >= n) && !done++) { clearTimeout(watchdog); return callback(err) }
-    }
-}
-**/
 
 
 qcluster = {
