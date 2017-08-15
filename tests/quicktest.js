@@ -12,9 +12,7 @@ if (qcluster.isMaster) {
         })
         qm.once('exit', function(child) {
             console.log("child exited, pid %d", child._pid);
-            if (!qm.children.length) {
-                console.log("quicktest done.");
-            }
+            console.log("quicktest done, children.length: %d.", qm.children.length);
         })
     })
 }

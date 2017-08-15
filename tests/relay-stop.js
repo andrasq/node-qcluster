@@ -2,11 +2,10 @@
 
 var qmock = require('qnit').qmock;
 var qcluster = require('../');
-var qm = qcluster.createCluster();
-qm.handleSignals(runTest);
 
-function runTest() {
-    if (qcluster.isMaster) {
+if (qcluster.isMaster) {
+    var qm = qcluster.createCluster();
+    qm.handleSignals(function() {
         var child = qm.forkChild();
         child.on('started', function() {
             var spy = qmock.spy(process, 'kill');
@@ -31,9 +30,9 @@ function runTest() {
             }, 10)
             // note: if the child exits too soon, the SIGCONT will not find it in qm.children[]
         })
-    }
-    else {
-        qcluster.sendToParent('started');
-        qcluster._delayExit();
-    }
+    })
+}
+else {
+    qcluster.sendToParent('started');
+    qcluster._delayExit();
 }

@@ -205,7 +205,7 @@ module.exports = {
                 t.contains(output, 'child running');
                 t.contains(output, 'child killed');
                 t.contains(output, 'child exited');
-                t.contains(output, 'quicktest done.');
+                t.contains(output, 'quicktest done, children.length: 0.');
                 t.done();
             })
         },
@@ -228,8 +228,8 @@ module.exports = {
         'should exists child': function(t) {
             this.runTest('exists-child', function(err, output) {
                 t.contains(output, 'child running');
-                t.contains(output, 'child exists');
-                t.contains(output, 'child gone');
+                t.contains(output, 'child exists: true');
+                t.contains(output, 'child gone: true');
                 t.done();
             })
         },

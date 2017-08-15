@@ -1,9 +1,9 @@
 'use strict';
 
 var qcluster = require('../');
-var qm = qcluster.createCluster({ startTimeoutMs: 10 });
 
 if (qcluster.isMaster) {
+    var qm = qcluster.createCluster({ startTimeoutMs: 10 });
     // async returns the error
     qm.forkChild(function(err, child) {
         if (err) console.log("error: %s", err.message);

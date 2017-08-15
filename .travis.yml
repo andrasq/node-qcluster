@@ -6,4 +6,4 @@ node_js:
 after_success:
   - npm install -g nyc
   - npm install -g codecov
-  - nyc --reporter lcov npm test && codecov
+  - nyc --reporter lcov --include qcluster.js npm test && codecov
