@@ -50,6 +50,16 @@ QCluster.log = function log( /* VARARGS */ ) {
     fs.writeFileSync("/dev/tty", util.format.apply(util, arguments) + '\n', {flag: 'a'});
 }
 
+QCluster._callOnce = function _callOnce( func ) {
+    var called = false;
+    return function( a, b ) {
+        if (!called) {
+            called = true;
+            func(a, b);
+        }
+    }
+}
+
 
 QCluster.prototype.handleSignals = function handleSignals( callback ) {
     var self = this;

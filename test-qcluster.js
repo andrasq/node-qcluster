@@ -39,6 +39,19 @@ module.exports = {
         t.done();
     },
 
+    'should implement _callOnce': function(t) {
+        var callOnce = qcluster.QCluster._callOnce;
+        t.equal(typeof callOnce, 'function');
+        var called = false;
+        function func(a) { called = a; }
+        var once = callOnce(func);
+        once(123);
+        once(234);
+        once(345);
+        t.equal(called, 123);
+        t.done();
+    },
+
     'createCluster': {
         'should create QCluster object': function(t) {
             var q = qcluster.createCluster();
