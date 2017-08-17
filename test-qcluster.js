@@ -159,6 +159,16 @@ module.exports = {
             t.done();
         },
 
+        'should invoke startChild': function(t) {
+            var qm = qcluster.createCluster();
+            var spyFork = t.stubOnce(cluster, 'fork', function(){ return mockChild() });
+            var spyStartChild = t.stubOnce(qm, 'startChild');
+            var child = qm.forkChild();
+            t.equal(spyStartChild.callCount, 1);
+            t.equal(spyStartChild.callArguments[0], child);
+            t.done();
+        },
+
         'errors': {
             'should throw Error on sync fork error': function(t) {
                 var qm = qcluster.createCluster();
@@ -184,6 +194,63 @@ module.exports = {
         },
     },
 
+    'startChild': {
+        'should not require options': function(t) {
+            var qm = qcluster.createCluster();
+            var child = mockChild();
+            var spy = t.spy(child, 'once');
+            qm.startChild(child);
+            t.equal(spy.callCount, 3);
+            t.equal(spy.getAllArguments()[0][0], 'ready');
+            t.equal(spy.getAllArguments()[1][0], 'started');
+            t.equal(spy.getAllArguments()[2][0], 'listening');
+            t.done();
+        },
+
+        'should ignore redundant events': function(t) {
+            var qm = qcluster.createCluster();
+            var child = mockChild();
+            var handlers = [];
+            var spy = t.spy(child, 'once', function(name, handler) { handlers.push(handler) });
+            var ncalls = 0;
+            qm.startChild(child, function() {
+                ncalls += 1;
+            });
+            handlers[0]();
+            handlers[1]();
+            handlers[2]();
+            setTimeout(function() {
+                t.equal(ncalls, 1);
+                t.done();
+            }, 10);
+        },
+
+        'should ignore listening if configured off': function(t) {
+            var qm = qcluster.createCluster({ startedIfListening: false });
+            var child = mockChild();
+            var spy = t.spy(child, 'once');
+            qm.startChild(child);
+            t.equal(spy.callCount, 2);
+            t.equal(spy.getAllArguments()[0][0], 'ready');
+            t.equal(spy.getAllArguments()[1][0], 'started');
+            t.done();
+        },
+    },
+
+    'killChild': {
+        'should accept null child': function(t) {
+            var qm = qcluster.createCluster();
+            qm.killChild(null);
+            t.done();
+        },
+
+        'should accept invalid child': function(t) {
+            var qm = qcluster.createCluster();
+            qm.killChild({});
+            t.done();
+        },
+    },
+
     'tests': {
         setUp: function(done) {
             /*
@@ -193,7 +260,7 @@ module.exports = {
             this.runTest = function runTest( which, callback ) {
                 var cmdline = process.argv[0] + ' ' + __dirname + '/tests/' + which;
                 child_process.exec(cmdline, function(err, stdout, stderr) {
-                    callback(err, stdout, stderr);
+                    callback(err, stdout + stderr);
                 })
             }
             done();
@@ -221,6 +288,25 @@ module.exports = {
             this.runTest('kill-child', function(err, output) {
                 t.contains(output, 'child process SIGINT');
                 t.contains(output, 'child process SIGTERM');
+                t.done();
+            })
+        },
+
+        'should stop child': function(t) {
+            this.runTest('stop-child', function(err, output) {
+                t.contains(output, 'child running');
+                t.contains(output, 'child received stop');
+                t.contains(output, 'child says stopped');
+                t.contains(output, 'child stopped');
+                t.done();
+            })
+        },
+
+        'should stop child timeout': function(t) {
+            this.runTest('stop-child-timeout', function(err, output) {
+                t.contains(output, 'child running');
+                t.contains(output, 'child received stop');
+                t.contains(output, 'child err: stop timeout');
                 t.done();
             })
         },
@@ -286,6 +372,7 @@ module.exports = {
         'should hoist events': function(t) {
             this.runTest('hoist-events', function(err, output) {
                 t.contains(output, 'parent: got ready');
+                t.contains(output, 'parent: got listening');
                 t.contains(output, 'parent: got started');
                 t.contains(output, 'parent: got stopped');
                 t.contains(output, 'child: got start');
@@ -306,5 +393,7 @@ function mockChild( pid ) {
         process: { pid: pid, on: noop, once: noop, kill: noop },
         on: noop,
         once: noop,
+        send: noop,
+        removeListener: noop,
     }
 }

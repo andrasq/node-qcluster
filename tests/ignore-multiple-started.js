@@ -21,5 +21,5 @@ else {
     qcluster.sendToParent('started');
     qcluster.sendToParent('started');
     qcluster.sendToParent('started');
-    qcluster._delayExit();
+    qcluster._delayExit(20);
 }

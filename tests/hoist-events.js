@@ -6,10 +6,13 @@ var qm = qcluster.createCluster();
 if (qcluster.isMaster) {
     var child = qm.forkChild();
 
-    child.on('ready', function(){
+    child.on('ready', function() {
         console.log("parent: got ready");
         qcluster.sendTo(child, 'start');
     });
+    child.on('listening', function() {
+        console.log("parent: got listening");
+    })
     child.on('started', function() {
         console.log("parent: got started");
         qcluster.sendTo(child, 'stop');
@@ -30,6 +33,7 @@ if (qcluster.isMaster) {
 }
 else {
     qcluster.sendToParent('ready');
+    qcluster.sendToParent('listening');
     process.once('start', function() {
         console.log("child: got start");
         qcluster.sendToParent('started');

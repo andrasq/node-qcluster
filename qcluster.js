@@ -14,7 +14,7 @@ function QCluster( options, callback ) {
     this.children = [];
     this.startTimeoutMs = options.startTimeoutMs || 30000;
     this.stopTimeoutMs = options.stopTimeoutMs || 20000;
-    this.startedIfListening = true;
+    this.startedIfListening = options.startedIfListening != null ? options.startedIfListening : true;
     this.signalsToRelay = [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP' ];
     // note: SIGUSR1 starts the built-in debugger agent (listens on port 5858)
     this._signalsQueued = [];
@@ -233,7 +233,7 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     function callbackOnce(err, child) {
         if (!returned) {
             returned = true;
-            clearTimer(stopTimeoutTimer);
+            clearTimeout(stopTimeoutTimer);
             callback(err, child);
         }
     }
@@ -243,7 +243,7 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     stopTimeoutTimer = setTimeout(onStopTimeout, this.stopTimeoutMs);
 
     function onChildStopped() {
-        callabckOnce(null, child);
+        callbackOnce(null, child);
     }
 
     function onStopTimeout( ) {
@@ -337,6 +337,7 @@ QCluster.prototype._hoistMessageEvent = function hoistMessageEvent( target, m ) 
         case 'ready': target.emit('ready'); break;
         case 'started': target.emit('started'); break;
         case 'stopped': target.emit('stopped'); break;
+        case 'listening': target.emit('listening'); break;      // simulated 'listening' event
         // exit
         // messages from parent to child, ie process.on and process.emit
         case 'start': target.emit('start'); break;
