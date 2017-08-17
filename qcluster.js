@@ -105,7 +105,7 @@ QCluster.prototype.handleSignals = function handleSignals( callback ) {
             (function(sig) {
                 process.on(sig, function(){
                     if (self._forking) self._signalsQueued.push(sig);
-                    else self._relaySignalToChildren(sig);
+                    else self._relaySignalsToChildren([sig], self.children);
                 });
                 // TODO: save the signal relayers so they can be uninstalled
             })(self.signalsToRelay[i]);
@@ -188,8 +188,9 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
 QCluster.prototype.killChild = function killChild( child, signal ) {
     // 0 and 'SIGHUP' are accepted signals, but 1 ('SIGHUP') is not
     if (!signal) signal = 'SIGTERM';
-    try { process.kill(child._pid, signal) }
+    try { if (child._pid) process.kill(child._pid, signal) }
     catch (err) { /* suppress "not exists" and "no permissions" errors */ }
+    // TODO: start a stopTimeoutTimer, re-kill if times out
 }
 
 QCluster.prototype.existsProcess = function existsProcess( pid ) {
@@ -247,11 +248,14 @@ QCluster.prototype._hoistMessageEvent = function hoistMessageEvent( target, m ) 
     }
 }
 
-QCluster.prototype._relaySignalToChildren = function _relaySignalToChildren( signal ) {
-    if (signal === 'SIGTSTP') signal = 'SIGSTOP';
-    for (var i=0; i<this.children.length; i++) {
-        try { process.kill(this.children[i]._pid, signal) }
-        catch (err) { /* ignore kill errors from non-existent processes */ }
+QCluster.prototype._relaySignalsToChildren = function _relaySignalToChildren( signals, children ) {
+    for (var si=0; si<signals.length; si++) {
+        var signal = signals[si];
+        if (signal === 'SIGTSTP') signal = 'SIGSTOP';
+        for (var ci=0; ci<this.children.length; ci++) {
+            try { process.kill(this.children[ci]._pid, signal) }
+            catch (err) { /* ignore kill errors from non-existent processes */ }
+        }
     }
 }
 
