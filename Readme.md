@@ -9,6 +9,24 @@ Robust worker cluster management.
 (work in progress)
 
 
+## API
+
+### qm = qcluster.createCluster( [options] )
+
+### qm.forkChild( [options,] [callback] )
+
+### qm.startChild( child, callback )
+
+### qm.stopChild( child, callback )
+
+### qm.killChild( child, [signal] )
+
+### qm.replaceChild( child, callback )
+
+Fork new child, wait for it to be ready, tell old child to stop, then when stopped
+start new child.
+
+
 ## Summary
 
     const qcluster = require('qcluster');

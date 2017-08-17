@@ -39,19 +39,6 @@ module.exports = {
         t.done();
     },
 
-    'should implement _callOnce': function(t) {
-        var callOnce = qcluster.QCluster._callOnce;
-        t.equal(typeof callOnce, 'function');
-        var called = false;
-        function func(a) { called = a; }
-        var once = callOnce(func);
-        once(123);
-        once(234);
-        once(345);
-        t.equal(called, 123);
-        t.done();
-    },
-
     'createCluster': {
         'should create QCluster object': function(t) {
             var q = qcluster.createCluster();
@@ -200,10 +187,11 @@ module.exports = {
             var child = mockChild();
             var spy = t.spy(child, 'once');
             qm.startChild(child);
-            t.equal(spy.callCount, 3);
+            t.equal(spy.callCount, 4);
             t.equal(spy.getAllArguments()[0][0], 'ready');
             t.equal(spy.getAllArguments()[1][0], 'started');
             t.equal(spy.getAllArguments()[2][0], 'listening');
+            t.equal(spy.getAllArguments()[3][0], 'exit');
             t.done();
         },
 
@@ -230,9 +218,10 @@ module.exports = {
             var child = mockChild();
             var spy = t.spy(child, 'once');
             qm.startChild(child);
-            t.equal(spy.callCount, 2);
+            t.equal(spy.callCount, 3);
             t.equal(spy.getAllArguments()[0][0], 'ready');
             t.equal(spy.getAllArguments()[1][0], 'started');
+            t.equal(spy.getAllArguments()[2][0], 'exit');
             t.done();
         },
     },
@@ -248,6 +237,95 @@ module.exports = {
             var qm = qcluster.createCluster();
             qm.killChild({});
             t.done();
+        },
+    },
+
+    'replaceChild': {
+        'should reject invalid child': function(t) {
+            var qm = qcluster.createCluster();
+            t.stub(qm, '_doReplaceChild');
+            var tests = [
+                // child, isInvalid?
+                [ false, 1 ],
+                [ null, 1 ],
+                [ {}, 1 ],
+                [ { _pid: undefined }, 1 ],
+                [ { _pid: null }, 1 ],
+                [ { _pid: 1 }, 0 ],
+            ];
+            var errCount = 0;
+            var expectedErrCount = 0;
+            for (var i=0; i<tests.length; i++) {
+                expectedErrCount += tests[i][1];
+                qm.replaceChild(tests[i][0], function(err) { if (err) errCount += 1; });
+            }
+            setTimeout(function() {
+                t.equal(errCount, expectedErrCount);
+                t.done();
+            }, 10);
+        },
+
+        'should require callback': function(t) {
+            var qm = qcluster.createCluster();
+            t.throws(function() {
+                qm.replaceChild({ _pid: 1 });
+            });
+            t.done();
+        },
+
+        'should queue child': function(t) {
+            var qm = qcluster.createCluster();
+            var child = mockChild();
+            child._pid = 1;
+            t.stub(qm, '_doReplaceChild');
+            qm.replaceChild(child, function(){});
+            t.equal(qm._replaceQueue.length, 1);
+            t.equal(qm._replaceQueue[0].child, child);
+            t.equal(typeof qm._replaceQueue[0].cb, 'function');
+            t.done();
+        },
+
+        'should call _doReplaceChild, guarded by the _replacing flag': function(t) {
+            var qm = qcluster.createCluster();
+            t.strictEqual(qm._replacing, false);
+            var child = mockChild();
+            child._pid = 1;
+            var stub = t.stub(qm, '_doReplaceChild', function(child, cb) { cb() });
+            qm.replaceChild(child, function() {
+                t.equal(stub.callCount, 1);
+            })
+            t.strictEqual(qm._replacing, true);
+            setTimeout(function() {
+                t.equal(qm._replacing, false);
+                t.done();
+            }, 10);
+        },
+
+        'should not call _doReplaceChild if already _replacing': function(t) {
+            var qm = qcluster.createCluster();
+            var child = mockChild();
+            child._pid = 1;
+            qm._replacing = true;
+            var stub = t.stub(qm, '_doReplaceChild', function(child, cb) { cb() });
+            qm.replaceChild(child, function(err) {});
+            setTimeout(function(err) {
+                t.equal(stub.callCount, 0);
+                t.strictEqual(qm._replacing, true);
+                t.done();
+            }, 10);
+        },
+
+        'should dequeue child even if error': function(t) {
+            var qm = qcluster.createCluster();
+            var child = mockChild();
+            child._pid = 1;
+            t.stub(qm, '_doReplaceChild', function(child, cb) { cb(new Error("test error")) });
+            qm.replaceChild(child, function(err, child) {
+                t.ok(err);
+                t.equal(err.message, 'test error');
+                t.equal(qm._replaceQueue.length, 0);
+                t.done();
+            })
         },
     },
 
