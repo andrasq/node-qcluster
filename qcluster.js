@@ -14,6 +14,7 @@ function QCluster( options, callback ) {
     this.children = [];
     this.startTimeoutMs = options.startTimeoutMs || 30000;
     this.stopTimeoutMs = options.stopTimeoutMs || 20000;
+    this.startedIfListening = true;
     this.signalsToRelay = [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP' ];
     // note: SIGUSR1 starts the built-in debugger agent (listens on port 5858)
     this._signalsQueued = [];
@@ -196,7 +197,7 @@ QCluster.prototype.startChild = function startChild( child, options, callback ) 
     // or be actually running and serving requests if 'started' or 'listening'
     child.once('ready', onChildStarted);
     child.once('started', onChildStarted);
-    // TODO: also act on 'listening' if options.startedIfListening
+    if (this.startedIfListening) child.once('listening', onChildStarted);
 
     function onChildStarted() {
         callbackOnce(null, child);
@@ -250,7 +251,11 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     }
 }
 
-QCluster.prototype._doReplaceChild = function replaceChild( oldChild, options, callback ) {
+QCluster.prototype.replaceChild = function replaceChild( oldChild, options, callback ) {
+    this._repaceQueue.push({ child: oldChild, cb : callback });
+}
+
+QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callback ) {
     var self = this;
     var returned = false;
     var startTimeoutTimer, stopTimeoutTimer;
@@ -279,7 +284,6 @@ QCluster.prototype._doReplaceChild = function replaceChild( oldChild, options, c
 
     // ready the replacement before stopping the running worker
     // TODO: add option to omit the forkChild startup timer?
-    // TODO: pass along forkChild options
     var newChild = forkChild({ startTimeoutMs: 1999999999 }, function(err, child) {
         // fork already cleaned up if error
         if (err) return callbackOnce(err);
@@ -298,8 +302,8 @@ QCluster.prototype._doReplaceChild = function replaceChild( oldChild, options, c
     }
 
     // when old child stops, tell new child to start
-    // TODO: re-check that parent will buffer net traffic while no children are listening
     // Normally the lag between the two is quick, just a few milliseconds.
+    // TODO: re-check that parent will accept new connections while no children are listening
     function onChildStopped( err, child ) {
         if (err) {
             // if the old child stayed running, cancel the new one, try again later
@@ -311,7 +315,7 @@ QCluster.prototype._doReplaceChild = function replaceChild( oldChild, options, c
     }
 
     // when new child is fully started, clean up and return
-    // if (options.startedIfListening) newChild.once('listening', onChildStarted);
+    if (this.startedIfListening) newChild.once('listening', onChildStarted);
     newChild.once('started', onChildStarted);
     function onChildStarted( ) {
         // clear timeout for child that does not signal 'ready'
