@@ -121,6 +121,9 @@ QCluster.prototype._fetchQueuedSignals = function _fetchQueuedSignals( ) {
     return signals;
 }
 
+/*
+ * fork a new child process and wait for it to finish initializing
+ */
 QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
     var self = this;
     if (typeof options === 'function') {
@@ -150,45 +153,68 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
         self._hoistMessageEvent(child, msg);
     })
 
-    var childStarted = false;
-    var startTimeoutTimer = setTimeout(onChildStartTimeout, this.startTimeoutMs);
-    function onChildStarted() {
-        if (childStarted) return;
-        childStarted = true;
-
-        clearTimeout(startTimeoutTimer);
-
-        // deliver any pending signals received while the child was starting
-        // so the child can handle the signal with app-specific semantics.
-        // TODO: a single signals queue supports only one-at-a-time forks
-        // TODO: child must signal 'started' for the _forking flag to get cleared
+    self.startChild(child, function(err, child) {
         self._forking = false;
         var signals = self._fetchQueuedSignals();
-        for (var i=0; i<signals.length; i++) self.killChild(child, signals[i]);
-
-        if (optionalCallback) optionalCallback(null, child);
-    }
-    child.on('started', onChildStarted);
-    // TODO: also act on 'listening' if options.startedIfListening
-
-    function onChildStartTimeout( ) {
-        // if child does not start in time, zap it
-        self.killChild(child, 'SIGKILL');
-        childStarted = true;
-        child._error = new Error("start timeout");
-        // return both the timeout error and the child
-        if (optionalCallback) optionalCallback(child._error);
-    }
+        if (!err) self._relaySignalsToChildren(signals, [child]);
+        else if (child && child._pid) self.killChild(child, 'SIGKILL');
+        if (optionalCallback) optionalCallback(err, child);
+    })
 
     this.children.push(child);
     this.emit('fork', child);
     return child;
 }
 
+/*
+ * wait for a newly forked child process to finish initializing
+ */
+QCluster.prototype.startChild = function startChild( child, options, callback ) {
+    var self = this;
+    var startTimeoutTimer;
+
+    if (!callback && typeof options === 'function') {
+        callback = options;
+        options = {};
+    }
+    options = options || {};
+
+    var returned = false;
+    function callbackOnce( err, child ) {
+        if (!returned) {
+            returned = true;
+            clearTimeout(startTimeoutTimer);
+            child.removeListener('ready', onChildStarted);
+            child.removeListener('started', onChildStarted);
+            child.removeListener('listening', onChildStarted);
+            callback(err, child);
+        }
+    }
+
+    startTimeoutTimer = setTimeout(onChildStartTimeout, options.startTimeoutMs || this.startTimeoutMs);
+    // wait for the child to be at least 'ready' to listen for requests,
+    // or be actually running and serving requests if 'started' or 'listening'
+    child.once('ready', onChildStarted);
+    child.once('started', onChildStarted);
+    // TODO: also act on 'listening' if options.startedIfListening
+
+    function onChildStarted() {
+        callbackOnce(null, child);
+    }
+
+    function onChildStartTimeout( ) {
+        // if child does not start in time, zap it
+        self.killChild(child, 'SIGKILL');
+        child._error = new Error("start timeout");
+        // return both the timeout error and the child
+        callbackOnce(child._error, child);
+    }
+}
+
 QCluster.prototype.killChild = function killChild( child, signal ) {
     // 0 and 'SIGHUP' are accepted signals, but 1 ('SIGHUP') is not
     if (!signal) signal = 'SIGTERM';
-    try { if (child._pid) process.kill(child._pid, signal) }
+    try { if (child && child._pid) process.kill(child._pid, signal) }
     catch (err) { /* suppress "not exists" and "no permissions" errors */ }
     // TODO: start a stopTimeoutTimer, re-kill if times out
 }
