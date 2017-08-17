@@ -225,6 +225,31 @@ QCluster.prototype.existsProcess = function existsProcess( pid ) {
     catch (err) { return false }
 }
 
+QCluster.prototype.stopChild = function stopChild( child, callback ) {
+    var stopTimeoutTimer;
+
+    var returned = false;
+    function callbackOnce(err, child) {
+        if (!returned) {
+            returned = true;
+            clearTimer(stopTimeoutTimer);
+            callback(err, child);
+        }
+    }
+
+    qcluster.sendTo(child, 'stop');
+    child.on('stopped', onChildStopped);
+    stopTimeoutTimer = setTimeout(onStopTimeout, this.stopTimeoutMs);
+
+    function onChildStopped() {
+        callabckOnce(null, child);
+    }
+
+    function onStopTimeout( ) {
+        callbackOnce(new Error("stop timeout"), child);
+    }
+}
+
 /**
 QCluster.prototype.replaceChild = function replaceChild( child, options ) {
 
