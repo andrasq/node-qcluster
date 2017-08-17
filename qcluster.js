@@ -157,7 +157,7 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
         self._forking = false;
         var signals = self._fetchQueuedSignals();
         if (!err) self._relaySignalsToChildren(signals, [child]);
-        else if (child && child._pid) self.killChild(child, 'SIGKILL');
+        else self.killChild(child, 'SIGKILL');
         if (optionalCallback) optionalCallback(err, child);
     })
 
@@ -250,33 +250,76 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     }
 }
 
-/**
-QCluster.prototype.replaceChild = function replaceChild( child, options ) {
+QCluster.prototype._doReplaceChild = function replaceChild( oldChild, options, callback ) {
+    var self = this;
+    var returned = false;
+    var startTimeoutTimer, stopTimeoutTimer;
+    var isStopped = false;
 
-TODO: write stopChild() that sends 'stop', waits for 'stopped', uses stopTimeoutMs
+    function callbackOnce( err, child ) {
+        if (returned) console.log("replaceChild already returned, called again with", err, child);
+        else {
+            returned = true;
+            clearTimeout(startTimeoutTimer);
+            clearTimeout(stopTimeoutTimer);
+            if (child) {
+                child.removeListener('ready', onChildReady);
+                child.removeListener('started', onChildStarted);
+                child.removeListener('listening', onChildStarted);
+            }
+            oldChild.removeListener('stopped', onChildStopped);
+            callback(err, child);
+        }
+    }
 
-qc.replaceChild( child, opts )
-  newChild = forkChild
-    if fork threw, cb(err)
-  if startTimeoutMs, return cb(new Error("startTimeout"), null)
+    startTimeoutTimer = setTimeout(onStartTimeout, self.startTimeoutMs);
+    function onStartTimeout( ) {
+        callbackOnce(new Error("start timeout"));
+    }
 
-  onNewChildReady:
-    send 'stop' to old child
-    if stopTimeoutMs
-      unhook onOldChildStopped
-      kill new child and return cb(new Error("stopTimeout"))
+    // ready the replacement before stopping the running worker
+    // TODO: add option to omit the forkChild startup timer?
+    // TODO: pass along forkChild options
+    var newChild = forkChild({ startTimeoutMs: 1999999999 }, function(err, child) {
+        // fork already cleaned up if error
+        if (err) return callbackOnce(err);
+    })
+    if (!newChild) callbackOnce(new Error("unable to fork"));
 
-  # verify that parent will buffer net traffic while no children are listening
-  # note: unsafe!  if new child cannot listen, have already stopped the old child!!
-  onOldChildStopped:
-    clear stopTimeoutTimer
-    send 'start' to new child
-    re-emit once 'listening' as a 'started'
-    once on 'started'
-        clear startTimeoutTimer
-        return cb(null, newChild)
+    // when replacement is ready, tell old child to stop
+    newChild.once('ready', onChildReady);
+    function onChildReady() {
+        clearTimeout(startTimeoutTimer);
+        // note: we are now stopping the old child, if the new child dies
+        // or cannot start, we might be left short a worker.
+        self.stopChild(oldChild, onChildStopped);
+        isStopped = true;
+        // TODO: option to start new child while old is still running (ie overlap)
+    }
+
+    // when old child stops, tell new child to start
+    // TODO: re-check that parent will buffer net traffic while no children are listening
+    // Normally the lag between the two is quick, just a few milliseconds.
+    function onChildStopped( err, child ) {
+        if (err) {
+            // if the old child stayed running, cancel the new one, try again later
+            self.killChild(newChild, 'SIGKILL');
+            return callbackOnce(err);
+        }
+        qcluster.sendTo(newChild, 'start');
+        newChild.on('started', onChildStarted);
+    }
+
+    // when new child is fully started, clean up and return
+    // if (options.startedIfListening) newChild.once('listening', onChildStarted);
+    newChild.once('started', onChildStarted);
+    function onChildStarted( ) {
+        // clear timeout for child that does not signal 'ready'
+        clearTimer(startTimeoutTimer);
+        if (!isStopped) self.stopChild(oldChild, onChildStopped);
+        callbackOnce(null, newChild);
+    }
 }
-**/
 
 QCluster.prototype._hoistMessageEvent = function hoistMessageEvent( target, m ) {
     // hoist child flow control messages into child events
