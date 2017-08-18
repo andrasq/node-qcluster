@@ -9,7 +9,7 @@
   "dependencies": {
   },
   "devDependencies": {
-    "qnit": "0.17.1"
+    "qnit": "0.18.0"
   },
   "scripts": {
     "test": "qnit test-*",

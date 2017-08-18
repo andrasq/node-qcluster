@@ -269,11 +269,11 @@ QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
             // replace one child at a time
             var child = info.child;
             var cb = info.cb;
-            self._doReplaceChild(child, function(err) {
+            self._doReplaceChild(child, function(err, newChild) {
                 // if error, leave as is, do not replace
                 // loop to check whether done and/or replace the next child
                 setImmediate(doReplace);
-                cb(err);
+                cb(err, newChild);
             })
         })
     }
@@ -287,38 +287,32 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
     var self = this;
     var returned = false;
 
-    function callbackOnce( err, child ) {
-        if (!returned) {
-            returned = true;
-            callback(err, child);
-        }
-        // else console.log("replaceChild already returned, called again with", err, child);
-    }
-
     // create a new child process
     var newChild = self.forkChild(function(err) {
         // new child is 'ready' or start timeout or unable to fork
-        if (err) return callbackOnce(err);
+        if (err) return callback(err);
 
         // when replacement is ready, tell old child to stop
-        // note: once we stopped the old child, if the new child dies
+        // The worker process must implement the 'stop' -> 'stopped' protocol.
+        // Note: once we stopped the old child, if the new child dies
         // or cannot listen, we might be left short a worker.
         self.stopChild(oldChild, function(err) {
             // old child is 'stopped' (or exited) or stop timeout
             if (err) {
                 // if old child did not stop, let old child run and clean up new child
                 self.killChild(newChild, 'SIGKILL');
-                return callbackOnce(err);
+                return callback(err);
             }
 
             // once old child stops, tell new child to start
             // This avoids both processes being active at the same time,
             // in case the underlying code does not support concurrency.
+            // The worker process must implement the 'start' -> 'started' protocol.
             // TODO: option to start new child while old is still listening (ie overlap)
             qcluster.sendTo(newChild, 'start');
             newChild.once('started', function() {
                 // new child is online and listening for requests
-                callbackOnce(null, newChild);
+                callback(null, newChild);
             })
         })
     })

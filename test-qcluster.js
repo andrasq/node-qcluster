@@ -438,6 +438,46 @@ module.exports = {
             })
         },
 
+        'should replace child': function(t) {
+            this.runTest('replace-child', function(err, output) {
+                var ix1 = output.indexOf('children before replace pid');
+                var ix2 = output.indexOf('children after replace pid');
+                var pid1 = parseInt(output.slice(ix1).split(' ')[4]);
+                var pid2 = parseInt(output.slice(ix2).split(' ')[4]);
+                t.contains(output, 'child1 pid ' + pid1);
+                t.contains(output, 'child2 pid ' + pid2);
+                t.contains(output, 'pids differ true');
+                t.contains(output, 'children before replace pid ' + pid1);
+                t.contains(output, 'children before replace length = 1');
+                t.contains(output, 'children after replace pid ' + pid2);
+                t.contains(output, 'children after replace length = 1');
+                t.ok(ix1 > 0 && ix2 > 0);
+                t.done();
+            })
+        },
+
+        'should replace child fork error': function(t) {
+            this.runTest('replace-child-fork-error', function(err, output) {
+                t.contains(output, 'child1 pid');
+                t.contains(output, 'child2 replace error: true');
+                t.contains(output, 'start timeout');
+                t.contains(output, 'still have child1: true');
+                t.contains(output, 'child2 exited');
+                t.done();
+            })
+        },
+
+        'should replace child stop timeout': function(t) {
+            this.runTest('replace-child-stop-timeout', function(err, output) {
+                t.contains(output, 'child1 pid');
+                t.contains(output, 'child2 replace error: true');
+                t.contains(output, 'stop timeout');
+                t.contains(output, 'still have child1: true');
+                t.contains(output, 'child2 exited');
+                t.done();
+            })
+        },
+
         'should relay signals': function(t) {
             this.runTest('relay-signals', function(err, output) {
                 t.contains(output, 'child running');
