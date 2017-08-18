@@ -362,6 +362,14 @@ module.exports = {
             })
         },
 
+        'should start child exit': function(t) {
+            this.runTest('start-child-exit', function(err, output) {
+                t.contains(output, 'child exited, code 123');
+                t.contains(output, 'startChild callback, err unexpected exit');
+                t.done();
+            })
+        },
+
         'should kill child': function(t) {
             this.runTest('kill-child', function(err, output) {
                 t.contains(output, 'child process SIGINT');
@@ -385,6 +393,16 @@ module.exports = {
                 t.contains(output, 'child running');
                 t.contains(output, 'child received stop');
                 t.contains(output, 'child err: stop timeout');
+                t.done();
+            })
+        },
+
+        'should stop child redundant': function(t) {
+            this.runTest('stop-child-redundant', function(err, output) {
+                t.contains(output, 'child running');
+                t.contains(output, 'child received stop');
+                t.contains(output, 'child stopped count 1');
+                t.notContains(output, 'child stopped count 2');
                 t.done();
             })
         },

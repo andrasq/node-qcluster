@@ -239,9 +239,12 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     stopTimeoutTimer = setTimeout(onStopTimeout, this.stopTimeoutMs);
 
     function onChildStopped() {
-        child.removeListener('stopped', onChildStopped);
-        child.removeListener('exit', onChildStopped);
-        child.removeListener('disconnect', onChildStopped);
+        // delay removing the listeners to be able to test the call-once mutexing
+        setImmediate(function() {
+            child.removeListener('stopped', onChildStopped);
+            child.removeListener('exit', onChildStopped);
+            child.removeListener('disconnect', onChildStopped);
+        })
         callbackOnce(null, child);
     }
 
