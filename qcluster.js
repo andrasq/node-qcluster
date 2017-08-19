@@ -9,7 +9,7 @@ var events = require('events');
 
 var qcluster;
 
-function QCluster( options, callback ) {
+function QCluster( options ) {
     if (!options) options = {};
     this.children = [];
     this.startTimeoutMs = options.startTimeoutMs || 30000;
@@ -61,7 +61,6 @@ QCluster.log = function log( /* VARARGS */ ) {
 QCluster.prototype.handleSignals = function handleSignals( callback ) {
     var self = this;
     var signals = this.signalsToRelay;
-    // TODO: accept an optional list of signals to relay
 
 /**
     // pre-signal self with relayed signals to make Jenkins unit tests work
@@ -372,7 +371,13 @@ qcluster = {
     isMaster: cluster.isMaster,
     isWorker: cluster.isWorker,
     createCluster: function createCluster( options, callback ) {
-        return new QCluster(options, callback);
+        if (!callback && typeof options === 'function') {
+            callback = options;
+            options = {};
+        }
+        var qm = new QCluster(options);
+        if (callback) qm.handleSignals(callback);
+        return qm;
     },
     sendTo: QCluster.sendTo,
     sendToParent: QCluster.sendToParent,
