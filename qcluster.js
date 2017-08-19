@@ -128,12 +128,12 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
     }
     child._pid = child.process.pid;
 
-    // re-emit child exit events as cluster events
     child.once('exit', function() {
         self._removePid(child._pid);
         self.emit('exit', child);
     })
 
+    // re-emit child exit events as cluster events
     child.on('message', function(msg) {
         self._hoistMessageEvent(child, msg);
     })

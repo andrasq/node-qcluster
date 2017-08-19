@@ -11,9 +11,9 @@ Robust worker cluster management.
 
 ## API
 
-### qm = qcluster.createCluster( [options] )
+### qm = qcluster.createCluster( [options,] [callback] )
 
-### qm.forkChild( [options,] [callback] )
+### qm.forkChild( [callback] )
 
 ### qm.startChild( child, callback )
 
@@ -33,3 +33,8 @@ start new child.
     const master = qcluster.createCluster();
 
     var child = master.forkChild();
+
+
+## Todo
+
+- 
