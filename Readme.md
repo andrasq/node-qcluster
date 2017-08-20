@@ -42,7 +42,9 @@ To stop:
 The `options.signalsToRelay` signals are caught by the qcluster master and re-sent to
 the worker processes.  Other signals are not treated as special.
 
-Signals that arrive while a 
+Signals that arrive while a worker is initializing are queued and re-sent once the
+worker is 'ready'.
+
 
 ## API
 
@@ -75,6 +77,38 @@ Other `sendToParent` messages are received by `process.on('message')` as the obj
       pid: child.process.pid,
       n: name,
       m: value }
+
+The startup sequence consists of:
+
+- 'ready' child -> parent
+- 'start' parent -> child
+- 'started' child -> parent
+
+The shutdown sequence:
+
+- 'stop' parent -> child
+- 'stopped' child -> parent
+
+Example parent:
+
+    var qm = qcluster.createCluster();
+    qm.forkChild(function(err, child) {
+        child.on('ready', function() {
+            qcluster.sendTo(child, 'start');
+        })
+    })
+
+Example child:
+
+    qcluster.sendToParent('ready');
+    process.on('start', function() {
+        app.listen();
+        qcluster.sendToParent('started');
+    })
+    process.on('stop', function() {
+        app.close();
+        qcluster.sendToParent('stopped');
+    })
 
 ## Cluster Manager API
 
