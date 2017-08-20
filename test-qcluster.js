@@ -123,10 +123,21 @@ module.exports = {
             done();
         },
 
-        'should returns send errors': function(t) {
+        'should invoke target.send with a qc message': function(t) {
+            t.expect(2);
+            var target = { send: function(msg) {
+                t.equal(msg.n, 'name');
+                t.equal(msg.m, 'value');
+                t.done();
+            } };
+            qcluster.sendTo(target, 'name', 'value');
+        },
+
+        'should return send errors': function(t) {
             var target = { send: function() { throw new Error('test error') } };
             var ret = qcluster.sendTo(target, 'name', 'value');
             assert(ret instanceof Error);
+            assert.equal(ret.message, 'test error');
             t.done();
         },
     },

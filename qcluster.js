@@ -268,17 +268,17 @@ QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
         var self = this;
         this._replacing = true;
         setImmediate(function doReplace() {
+            // replace one child at a time
             var info = self._replaceQueue.shift();
             if (!info) {
                 self._replacing = false;
                 return;
             }
 
-            // replace one child at a time
             var child = info.child;
             var cb = info.cb;
             self._doReplaceChild(child, function(err, newChild) {
-                // if error, leave as is, do not replace
+                // if error, _doReplaceChild leaves child running, does not replace
                 // loop to check whether done and/or replace the next child
                 setImmediate(doReplace);
                 cb(err, newChild);
