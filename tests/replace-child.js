@@ -18,7 +18,7 @@ if (qcluster.isMaster) {
                 console.log("children after replace length = %d", qm.children.length);
                 if (qm.children[0]) console.log("children after replace pid %d", qm.children[0]._pid);
                 // pause a bit before exiting else the above output might be lost
-                qcluster._delayExit();
+                qcluster._delayExit(20);
             })
         })
     })

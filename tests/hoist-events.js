@@ -32,7 +32,7 @@ if (qcluster.isMaster) {
 
     setTimeout(function() {
         qcluster.sendTo(child, 'quit');
-    }, 40);
+    }, 100);
 }
 else {
     qcluster.sendToParent('ready');
