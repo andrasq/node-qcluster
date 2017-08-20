@@ -55,4 +55,7 @@ else {
 
     // should not hoist invalid messages
     process.send({ n: 'other', m: 'other' });
+
+    // wait for 'quit'
+    qcluster._delayExit(999999);
 }
