@@ -16,11 +16,13 @@ function QCluster( options ) {
     this.stopTimeoutMs = options.stopTimeoutMs || 20000;
     this.startedIfListening = options.startedIfListening != null ? options.startedIfListening : true;
     this.signalsToRelay = options.signalsToRelay || [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP' ];
+    // note: it is an error in node to listen for (the uncatchable) SIGSTOP
     // note: SIGUSR1 starts the built-in debugger agent (listens on port 5858)
     this._signalsQueued = [];
     this._forking = false;
     this._replaceQueue = [];
     this._replacing = false;
+    this._signalHandlerInstalled = false;
 
     events.EventEmitter.call(this);
 
@@ -62,39 +64,43 @@ QCluster.prototype.handleSignals = function handleSignals( callback ) {
     var self = this;
     var signals = this.signalsToRelay;
 
+    if (self._signalHandlersInstalled) {
+        return callback();
+    }
+    // TODO: should mutex both _installing and _installed, in case of overlap
+    self._signalHandlersInstalled = true;
+
 /**
     // pre-signal self with relayed signals to make Jenkins unit tests work
     // TODO: was needed for node-v0.10, but maybe no longer
     var expectCount = signals.length;
     for (var i=0; i<signals.length; i++) {
         var signal = signals[i];
-        if (signal !== 'SIGSTOP' && signal !== 'SIGTSTP') {
-            process.once(signal, function() {
-                // note: kill is done on the next tick (node v4 and up)
-                expectCount -= 1;
-                if (!expectCount && callback) {
-                    installRelays();
-                    callback(null, self);
-                }
-            });
-            process.kill(process.pid, signal);
-        }
-        else expectCount -= 1;
+        process.once(signal, function() {
+            // note: signal is delivered on next tick in node v4 and up
+            expectCount -= 1;
+            if (!expectCount && callback) {
+                self._installRelays();
+                callback(null, self);
+            }
+        });
+        process.kill(process.pid, signal);
     }
-**/
-    installRelays();
+/**/
+    self._installRelays();
     callback(null, self);
+}
 
-    function installRelays( ) {
-        for (var i=0; i<self.signalsToRelay.length; i++) {
-            (function(sig) {
-                process.on(sig, function(){
-                    if (self._forking) self._signalsQueued.push(sig);
-                    else self._relaySignalsToChildren([sig], self.children);
-                });
-                // TODO: save the signal relayers so they can be uninstalled
-            })(self.signalsToRelay[i]);
-        }
+QCluster.prototype._installRelays = function _installRelays( ) {
+    var self = this;
+    for (var i=0; i<self.signalsToRelay.length; i++) {
+        (function(sig) {
+            process.on(sig, function(){
+                if (self._forking) self._signalsQueued.push(sig);
+                else self._relaySignalsToChildren([sig], self.children);
+            });
+            // TODO: save the signal relayers so they can be uninstalled
+        })(self.signalsToRelay[i]);
     }
 }
 
@@ -322,7 +328,7 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
 
 QCluster.prototype._hoistMessageEvent = function hoistMessageEvent( target, m ) {
     // hoist child flow control messages into child events
-//console.log("AR: message received", m);
+//qcluster.log("AR: message received", m);
     if (m && m.pid > 0 && m.v === 'qc-1') {
         switch (m.n) {
         // messages from child to parent, ie child.on and child.emit
@@ -367,6 +373,23 @@ QCluster.prototype._removePid = function _removePid( pid ) {
 }
 
 
+function repeatUntil( action, cb ) {
+    (function loop() {
+        action(function(err, stop) {
+            if (err || stop) return cb(err, stop);
+            else loop();
+        })
+    })();
+}
+
+function iterate( actions, done ) {
+    var ix = 0;
+    repeatUntil(function(cb) {
+        if (ix >= actions.length) return cb(null, true);
+        actions[ix++](cb);
+    }, done);
+}
+
 qcluster = {
     isMaster: cluster.isMaster,
     isWorker: cluster.isWorker,
@@ -375,8 +398,36 @@ qcluster = {
             callback = options;
             options = {};
         }
+        if (!options) options = {};
         var qm = new QCluster(options);
-        if (callback) qm.handleSignals(callback);
+
+        // delay the setup until the next tick to make unit testable
+        setImmediate(function() {
+            iterate([
+                function(cb) {
+                    if (options.omitSignalHandler) return cb();
+                    qm.handleSignals(function(err) { cb(err) });
+                },
+                function(cb) {
+                    if (options.clusterSize > 0) {
+                        repeatUntil(function(cb) {
+                            if (qm.children.length < options.clusterSize) {
+                                qm.forkChild(function(err) { cb(err) });
+                            }
+                            else {
+                                cb(null, true);
+                            }
+                        }, function(err) {
+                            cb(err);
+                        })
+                    }
+                    else cb();
+                },
+            ],
+            function(err) {
+                if (callback) callback(err);
+            })
+        })
         return qm;
     },
     sendTo: QCluster.sendTo,
@@ -389,6 +440,8 @@ qcluster = {
         // a 0 timeout can swallow pending console output
         setTimeout(process.exit, ms || 5);
     },
+    repeatUntil: repeatUntil,
+    iterate: iterate,
 }
 
 QCluster.prototype = QCluster.prototype;

@@ -39,6 +39,21 @@ module.exports = {
         t.done();
     },
 
+    'QCluster': {
+        'should accept options': function(t) {
+            var qc = new qcluster.QCluster();
+            var qc2 = new qcluster.QCluster({
+                startTimeoutMs: 11,
+                stopTimeoutMs: 22,
+            })
+            assert(qc.startTimeoutMs > 0);
+            assert(qc.stopTimeoutMs > 0);
+            assert.equal(qc2.startTimeoutMs, 11);
+            assert.equal(qc2.stopTimeoutMs, 22);
+            t.done();
+        }
+    },
+
     'createCluster': {
         'should create QCluster object': function(t) {
             var q = qcluster.createCluster();
@@ -57,7 +72,49 @@ module.exports = {
             assert.equal(q2.startTimeoutMs, 11);
             assert.equal(q2.stopTimeoutMs, 22);
             t.done();
-        }
+        },
+
+        'should accept callback': function(t) {
+            var qm = qcluster.createCluster(function cb(err) {
+                t.ok(qm instanceof qcluster.QCluster);
+                t.done();
+            })
+        },
+
+        'should install signal handlers by default': function(t) {
+            var qm = qcluster.createCluster();
+            var spy = t.spy(qm, 'handleSignals');
+            setTimeout(function() {
+                t.equal(spy.callCount, 1);
+                t.done();
+            }, 10);
+        },
+
+        'should omit signal handling if omitSignalHandler': function(t) {
+            var qm = qcluster.createCluster({ omitSignalHandler: true });
+            var spy = t.spy(qm, 'handleSignals');
+            setTimeout(function() {
+                t.equal(spy.callCount, 0);
+                t.done();
+            }, 10);
+        },
+
+        'should create childen if clusterSize > 0': function(t) {
+            var spy;
+            var qm = qcluster.createCluster({ clusterSize: 3 }, function(err) {
+                t.ifError(err);
+                t.equal(spy.callCount, 3);
+                t.equal(qm.children.length, 3);
+                t.done();
+            });
+            spy = t.stub(qm, 'forkChild', function(cb) { 
+                var child = mockChild();
+                child._pid = 1234;
+                qm.children.push(child);
+                cb(null, child);
+                return child
+            });
+        },
     },
 
     'sendTo': {
@@ -71,6 +128,21 @@ module.exports = {
             var ret = qcluster.sendTo(target, 'name', 'value');
             assert(ret instanceof Error);
             t.done();
+        },
+    },
+
+    'handleSignals': {
+        'should install relays only once': function(t) {
+            var spyHandle, spyInstall;
+            var qm = qcluster.createCluster(function(err) {
+                qm.handleSignals(function(err) {
+                    t.equal(spyHandle.callCount, 2);
+                    t.equal(spyInstall.callCount, 1);
+                    t.done();
+                })
+            });
+            spyHandle = t.spy(qm, 'handleSignals');
+            spyInstall = t.spy(qm, '_installRelays');
         },
     },
 
@@ -515,7 +587,7 @@ module.exports = {
                 t.contains(output, 'child: got stop');
                 t.contains(output, 'child: got quit');
                 t.contains(output, 'parent: child exited');
-                t.ok(output.indexOf('other') < 0);
+                t.notContains(output, 'other');
                 t.done();
             })
         },

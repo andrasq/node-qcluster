@@ -19,7 +19,6 @@ if (qcluster.isMaster) {
     })
     child.on('stopped', function() {
         console.log("parent: got stopped");
-        qcluster.sendTo(child, 'quit');
     })
     child.on('other', function() {
         console.log("parent: got other");
@@ -30,6 +29,10 @@ if (qcluster.isMaster) {
 
     // should not hoist invalid messages
     child.send({ n: 'other', m: 'other' });
+
+    setTimeout(function() {
+        qcluster.sendTo(child, 'quit');
+    }, 40);
 }
 else {
     qcluster.sendToParent('ready');
