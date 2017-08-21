@@ -140,6 +140,15 @@ module.exports = {
             assert.equal(ret.message, 'test error');
             t.done();
         },
+
+        'should match message format': function(t) {
+            var message;
+            var target = { _pid: 12345, send: function(m) { message = m } };
+            qcluster.sendTo(target, 'name-string', {val: 'value'});
+            t.ok(qcluster.isQMessage(message));
+            t.contains(message, { v: 'qc-1', pid: 12345, n: 'name-string', m: { val: 'value' } });
+            t.done();
+        },
     },
 
     'handleSignals': {
@@ -598,7 +607,8 @@ module.exports = {
                 t.contains(output, 'child: got stop');
                 t.contains(output, 'child: got quit');
                 t.contains(output, 'parent: child exited');
-                t.notContains(output, 'other');
+                t.contains(output, 'parent: got message: status');
+                t.notContains(output, 'got other');
                 t.done();
             })
         },

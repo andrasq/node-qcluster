@@ -34,9 +34,10 @@ function QCluster( options ) {
 util.inherits(QCluster, events.EventEmitter);
 
 QCluster.sendTo = function sendTo( target, name, value ) {
-    // if parent, then target = child, else target = process
+    // parent sends to target = child, child sends to target = process
+    // In both cases, the pid is the child process pid.
     try {
-        var pid = target.pid || target._pid;
+        var pid = target._pid || target.pid;
         var msg = { v: 'qc-1', pid: pid, n: name, m: value };
 //console.log("AR: sending", msg);
         target.send(msg);
@@ -48,6 +49,10 @@ QCluster.sendTo = function sendTo( target, name, value ) {
 
 QCluster.sendToParent = function sendToParent( name, value ) {
     this.sendTo(process, name, value);
+}
+
+QCluster.isQMessage = function isQMessage( m ) {
+    return (m && m.v === 'qc-1' && m.pid > 0 && typeof m.n === 'string');
 }
 
 // just like console.log, but directly to the terminal, bypassing stdout
@@ -259,7 +264,8 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
 }
 
 QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
-    if (!oldChild || !(oldChild._pid > 0)) return callback(new Error("not our child"));
+    if (!oldChild) return callback(new Error("no child"));
+    if (!(oldChild._pid > 0)) return callback(new Error("not our child"));
     if (!callback) throw new Error("callback required");
 
     this._replaceQueue.push({ child: oldChild, cb : callback });
@@ -432,6 +438,7 @@ qcluster = {
     },
     sendTo: QCluster.sendTo,
     sendToParent: QCluster.sendToParent,
+    isQMessage: QCluster.isQMessage,
     log: QCluster.log,
 
     // for testing:

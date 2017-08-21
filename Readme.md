@@ -69,6 +69,12 @@ Options:
 Send a message to the parent process.  Startup flow control messages are converted
 into process events, other messages arrive as process 'message' events.
 
+### qcluster.isQMessage( message )
+
+Tests that the message was sent with `sendToParent`.
+
+### Message Details
+
 The flow control messages were described above in Worker Start Protocol.
 
 Other `sendToParent` messages are received by `process.on('message')` as the object

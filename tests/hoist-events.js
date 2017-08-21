@@ -27,6 +27,9 @@ if (qcluster.isMaster) {
     child.on('other', function() {
         console.log("parent: got other");
     })
+    child.on('message', function(m) {
+        console.log("parent: got message: %s", m.n);
+    })
     child.on('exit', function() {
         console.log("parent: child exited");
         qcluster._delayExit();
@@ -35,6 +38,7 @@ if (qcluster.isMaster) {
 else {
     qcluster.sendToParent('ready');
     qcluster.sendToParent('listening');
+    qcluster.sendToParent('status', 'ok');
     process.once('start', function() {
         console.log("child: got start");
         qcluster.sendToParent('started');
