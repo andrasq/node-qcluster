@@ -64,6 +64,11 @@ Options:
 
 ## IPC Messages
 
+### qcluster.sendTo( child, name, value )
+
+Send a message to a worker process.  The message can be received with
+`process.on('message')` and tested with `qcluster.isQMessage()`.
+
 ### qcluster.sendToParent( name, value )
 
 Send a message to the parent process.  Startup flow control messages are converted
@@ -133,6 +138,10 @@ Child processes are automatically added to `qm.children` when they are forked.
 
 Signals received by the qcluster master are stored and re-sent to the child after it
 becomes ready.
+
+### qm.findPid( pid )
+
+Return the child from among `qm.children` with the given process id `pid`.
 
 ### qm.stopChild( child, callback )
 

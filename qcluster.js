@@ -51,6 +51,16 @@ QCluster.sendToParent = function sendToParent( name, value ) {
     this.sendTo(process, name, value);
 }
 
+QCluster.disconnectFrom = function disconnectFrom( target ) {
+    // parent disconnects from target = child, child disconnects from parent target = process
+    try { if (target.disconnect) target.disconnect() }
+    catch (err) { if (err.message.indexOf("already disconnected") < 0) throw err }
+}
+
+QCluster.disconnectFromParent = function disconnectFromParent( ) {
+    this.disconnectFrom(process);
+}
+
 QCluster.isQMessage = function isQMessage( m ) {
     return (m && m.v === 'qc-1' && m.pid > 0 && typeof m.n === 'string');
 }
@@ -139,7 +149,7 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
     }
     child._pid = child.process.pid;
 
-    child.once('exit', function() {
+    child.once('exit', function(worker) {
         self._removePid(child._pid);
         self.emit('exit', child);
     })
@@ -236,6 +246,7 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     function callbackOnce(err, child) {
         if (!returned) {
             // delay removing the listeners to be able to test the call-once mutexing
+            // even that leaves a race that sometimes gets only one message through
             setImmediate(function() {
                 child.removeListener('stopped', onChildStopped);
                 child.removeListener('exit', onChildStopped);
@@ -416,16 +427,15 @@ qcluster = {
                 },
                 function(cb) {
                     if (options.clusterSize > 0) {
-                        repeatUntil(function(cb) {
-                            if (qm.children.length < options.clusterSize) {
+                        repeatUntil(
+                            function(cb) {
+                                if (qm.children.length >= options.clusterSize) return cb(null, true);
                                 qm.forkChild(function(err) { cb(err) });
+                            },
+                            function(err) {
+                                cb(err);
                             }
-                            else {
-                                cb(null, true);
-                            }
-                        }, function(err) {
-                            cb(err);
-                        })
+                        )
                     }
                     else cb();
                 },
@@ -439,6 +449,8 @@ qcluster = {
     sendTo: QCluster.sendTo,
     sendToParent: QCluster.sendToParent,
     isQMessage: QCluster.isQMessage,
+    disconnectFrom: QCluster.disconnectFrom,
+    disconnectFromParent: QCluster.disconnectFromParent,
     log: QCluster.log,
 
     // for testing:

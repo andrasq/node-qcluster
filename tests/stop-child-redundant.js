@@ -7,7 +7,6 @@ if (qcluster.isMaster) {
     var child = qm.forkChild();
     var stopCount = 0;
     child.on('stopped', function() {
-console.log("AR: stopped");
         stopCount += 1;
     })
     child.on('started', function() {

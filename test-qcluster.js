@@ -201,6 +201,46 @@ module.exports = {
         },
     },
 
+    'disconnectFrom': {
+        'disconnectFromParent should invoke disconnectFrom with process': function(t) {
+            var spy = t.stubOnce(qcluster, 'disconnectFrom');
+            qcluster.disconnectFromParent();
+            t.equal(spy.callCount, 1);
+            t.equal(spy.callArguments[0], process);
+            t.done();
+        },
+
+        'disconnectFrom should invoke child.disconnect': function(t) {
+            var child = mockChild();
+            var spy = t.stubOnce(child, 'disconnect');
+            qcluster.disconnectFrom(child);
+            t.equal(spy.callCount, 1);
+            t.done();
+        },
+
+        'should do nothing if child has no disconnect ': function(t) {
+            var child = mockChild();
+            qcluster.disconnectFrom(child);
+            t.done();
+        },
+
+        'should suppress "already disconnected" errors': function(t) {
+            var child = mockChild();
+            var spy = t.stubOnce(child, 'disconnect', function() { throw new Error("test error: worker is already disconnected, cannot disconnect") });
+            qcluster.disconnectFrom(child);
+            t.equal(spy.callCount, 1);
+            t.done();
+        },
+
+        'should rethrow errors': function(t) {
+            var child = mockChild();
+            var spy = t.stubOnce(child, 'disconnect', function() { throw new Error("test error") });
+            t.throws(function() { qcluster.disconnectFrom(child) });
+            t.equal(spy.callCount, 1);
+            t.done();
+        },
+    },
+
     '_removePid': {
         'should remove child from children': function(t) {
             var qm = qcluster.createCluster();
