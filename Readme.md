@@ -62,11 +62,16 @@ Options:
 - omitSignalHandler - do not catch or relay any signals to the workers.  Default false.
 - clusterSize - number of worker processes to create when starting the cluster.
 
+## Events
+
+The qcluster manager emits 'fork' and 'exit' events when a new child is created and
+when it exits.
+
 ## IPC Messages
 
 ### qcluster.sendTo( child, name, value )
 
-Send a message to a worker process.  The message can be received with
+Send a message to a worker process.  The message can be received in the worker with
 `process.on('message')` and tested with `qcluster.isQMessage()`.
 
 ### qcluster.sendToParent( name, value )
@@ -80,9 +85,13 @@ Tests that the message was sent with `sendToParent`.
 
 ### Message Details
 
-The flow control messages were described above in Worker Start Protocol.
+The flow control events were described above in Worker Start Protocol.  In the parent,
+flow control messages are re-emitted as `child` object events; in the child, as
+`process` events.
 
-Other `sendToParent` messages are received by `process.on('message')` as the object
+Other, non-flow-control `sendToParent` messages are received by the cluster master
+with the usual nodejs `cluster` IPC: `child.on('message')` or `cluster.on('message')`.
+The message format is
 
     { v: 'qc-1',
       pid: child.process.pid,
@@ -106,6 +115,11 @@ Example parent:
     qm.forkChild(function(err, child) {
         child.on('ready', function() {
             qcluster.sendTo(child, 'start');
+        })
+        child.on('message', function(message) {
+            if (qcluster.isQMessage(message)) {
+                console.log("child #%d sent message", sender.id, message);
+            }
         })
     })
 

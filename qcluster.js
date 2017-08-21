@@ -26,8 +26,9 @@ function QCluster( options ) {
 
     events.EventEmitter.call(this);
 
+    // re-emit qcluster flow control messages in child as process events
     var self = this;
-    process.on('message', function(msg) {
+    if (!qcluster.isMaster) process.on('message', function(msg) {
         self._hoistMessageEvent(process, msg);
     })
 }
@@ -39,7 +40,6 @@ QCluster.sendTo = function sendTo( target, name, value ) {
     try {
         var pid = target._pid || target.pid;
         var msg = { v: 'qc-1', pid: pid, n: name, m: value };
-//console.log("AR: sending", msg);
         target.send(msg);
     }
     catch(err) {
@@ -154,7 +154,7 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
         self.emit('exit', child);
     })
 
-    // re-emit child exit events as cluster events
+    // re-emit qcluster flow control messages in master as child events
     child.on('message', function(msg) {
         self._hoistMessageEvent(child, msg);
     })
@@ -343,21 +343,22 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
     })
 }
 
+// hoist flow control messages into cluster events
 QCluster.prototype._hoistMessageEvent = function hoistMessageEvent( target, m ) {
-    // hoist child flow control messages into child events
-//qcluster.log("AR: message received", m);
-    if (m && m.pid > 0 && m.v === 'qc-1') {
+    // parent re-emits flow control events on target = child, child on target = process
+    if (qcluster.isQMessage(m)) {
         switch (m.n) {
-        // messages from child to parent, ie child.on and child.emit
-        // forked
-        // online
-        // listening
+        // messages on parent side, ie child.on
+        // fork - by nodejs when process created
+        // online - by nodejs when nodejs started
+        // listening - by nodejs when process listening on socket
         case 'ready': target.emit('ready'); break;
         case 'started': target.emit('started'); break;
         case 'stopped': target.emit('stopped'); break;
         case 'listening': target.emit('listening'); break;      // simulated 'listening' event
-        // exit
-        // messages from parent to child, ie process.on and process.emit
+        // exit - by nodejs when process exited
+
+        // messages on child side, ie process.on
         case 'start': target.emit('start'); break;
         case 'stop': target.emit('stop'); break;
         case 'quit': target.emit('quit'); break;
