@@ -19,7 +19,7 @@ Robust worker cluster management.
 
 QCluster uses a handshake protocol when starting and stopping worker processes:
 
-To start:
+Starting:
 
 - 'ready' - sent by child once child has finished initializing and is ready to accept
   requests (ie, is ready to listen).  The child may skip straight to 'started', or
@@ -28,7 +28,7 @@ To start:
 - 'started' - response sent by child to confirm that it is now accepting requests
 - 'listening' - sent by nodejs to parent when child starts listening on a socket
 
-To stop:
+Stopping:
 
 - 'stop' - sent by parent to stop child from accepting any more requests
 - 'stopped' - response sent by child to confirm that it is not longer accepting
