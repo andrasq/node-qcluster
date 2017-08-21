@@ -9,6 +9,9 @@ if (qcluster.isMaster) {
     child.on('ready', function() {
         console.log("parent: got ready");
         qcluster.sendTo(child, 'start');
+
+        // should not hoist non-qcluster messages
+        child.send({ n: 'other', m: 'other' });
     });
     child.on('listening', function() {
         console.log("parent: got listening");
@@ -19,20 +22,15 @@ if (qcluster.isMaster) {
     })
     child.on('stopped', function() {
         console.log("parent: got stopped");
+        qcluster.sendTo(child, 'quit');
     })
     child.on('other', function() {
         console.log("parent: got other");
     })
     child.on('exit', function() {
         console.log("parent: child exited");
+        qcluster._delayExit();
     })
-
-    // should not hoist invalid messages
-    child.send({ n: 'other', m: 'other' });
-
-    setTimeout(function() {
-        qcluster.sendTo(child, 'quit');
-    }, 100);
 }
 else {
     qcluster.sendToParent('ready');

@@ -21,7 +21,7 @@ else {
     qcluster.sendToParent('started');
     process.on('SIGTERM', function() {
         console.log("child killed, pid %d", process.pid);
-        qcluster._delayExit();
+        qcluster._delayExit(20);
     })
 }
 
