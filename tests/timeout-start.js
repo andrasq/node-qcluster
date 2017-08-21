@@ -14,7 +14,7 @@ if (qcluster.isMaster) {
     setTimeout(function() {
         console.log("child exists?", qm.existsProcess(child._pid));
         qcluster.delayExit();
-    }, 40)
+    }, 100)
 }
 else {
     // note: timed out child processes are killed with SIGKILL, which breaks its coverage stats
