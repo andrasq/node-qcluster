@@ -124,7 +124,8 @@ are automatically removed from `qm.children` when they exit.
 ### qm.replaceChild( child, callback )
 
 Fork new child, wait for it to be ready, tell old child to stop, then when stopped
-start new child.  Can return "start timeout" or "stop timeout" errors.
+start new child.  Can return "start timeout", "stop timeout" or "already being
+replaced" errors.
 
 This sequence ensures that a service with a single worker always remains strictly
 single-threaded.  The gap in service is minimized to just the 'start' and 'stop'
@@ -134,6 +135,10 @@ Child processes are replaced sequentially, one at a time.  Multiple requests are
 queued and processed in order of arrival.  If there is a fork error, start timeout or
 stop timeout, the new process is killed and the old process is left to run.
 
+### qm.isBeingReplaced( child )
+
+Check whether the child is already queued for replacement.  A child may be replaced
+only once
 
 ## Signal Handling
 
