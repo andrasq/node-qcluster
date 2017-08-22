@@ -17,6 +17,7 @@ selectively replace workers without dropping requests.
     const master = qcluster.createCluster();
 
     var child = master.forkChild();
+    master.replaceChild(child, function(err, child2) { ... });
 
 
 ## Worker Start Protocol
@@ -44,10 +45,14 @@ Stopping:
 ## Signal Handling
 
 The `options.signalsToRelay` signals are caught by the qcluster master and re-sent to
-the worker processes.  Other signals are not treated as special.
+the worker processes.  Other signals are not treated as special.  The re-sent signals
+are ignored; other signals may kill the master.  'SIGSTOP' and 'SIGKILL' cannot be caught,
+and it is a nodejs error to try.
 
-Signals that arrive while a worker is initializing are queued and re-sent once the
-worker is 'ready'.
+Signals that arrive while a worker is initializing are queued and re-sent after the
+worker is 'ready' to let the app handle it and not kill the half-initialized process.
+This includes 'SIGTSTP', ie an initializing worker will not be suspended at the same
+time as the other workers.
 
 
 ## API
@@ -64,7 +69,7 @@ Options:
 - signalsToRelay - which signals the master should catch and relay to the workers.  Default is
   [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP' ].  SIGTSTP is relayed as SIGSTOP.
 - omitSignalHandler - do not catch or relay any signals to the workers.  Default false.
-- clusterSize - number of worker processes to create when starting the cluster.
+- clusterSize - number of worker processes to create when starting the cluster.  Default none.
 
 ## Events
 
@@ -188,3 +193,5 @@ stop timeout, the new process is killed and the old process is left to run.
 ## Todo
 
 - rename `forkChild` -> `startChild`
+- support trace events of qcluster actions, eg pre-fork, post-fork, pre-replace,
+  signal relay, etc.
