@@ -11,13 +11,34 @@ manage a work cluster.  It propagates signals, can start and stop workers, and c
 selectively replace workers without dropping requests.
 
 
-## Summary
+Sample parent:
 
     const qcluster = require('qcluster');
-    const master = qcluster.createCluster();
+    const qm = qcluster.createCluster();
 
-    var child = master.forkChild();
-    master.replaceChild(child, function(err, child2) { ... });
+    qm.forkChild(function(err, child) {
+        child.on('message', function(message) {
+            if (qcluster.isQMessage(message)) {
+                console.log("child #%d sent message", message.pid, message);
+            }
+        })
+    })
+
+Sample child:
+
+    createApp(function(err, app) {
+        qcluster.sendToParent('ready');
+
+        process.on('start', function() {
+            app.listen();
+            qcluster.sendToParent('started');
+        })
+
+        process.on('stop', function() {
+            app.close();
+            qcluster.sendToParent('stopped');
+        })
+    })
 
 
 ## Worker Start Protocol
@@ -71,31 +92,6 @@ Options:
 - omitSignalHandler - do not catch or relay any signals to the workers.  Default false.
 - clusterSize - number of worker processes to create when starting the cluster.  Default none.
 
-Example parent:
-
-    var qm = qcluster.createCluster();
-    qm.forkChild(function(err, child) {
-        child.on('ready', function() {
-            qcluster.sendTo(child, 'start');
-        })
-        child.on('message', function(message) {
-            if (qcluster.isQMessage(message)) {
-                console.log("child #%d sent message", sender.id, message);
-            }
-        })
-    })
-
-Example child:
-
-    qcluster.sendToParent('ready');
-    process.on('start', function() {
-        app.listen();
-        qcluster.sendToParent('started');
-    })
-    process.on('stop', function() {
-        app.close();
-        qcluster.sendToParent('stopped');
-    })
 
 ## Qcluster manager properties:
 
@@ -115,7 +111,8 @@ when it exits.
 ### qm.forkChild( [callback] )
 
 Add another child to the cluster, and start it.  Returns to the caller the child
-process; returns to the callback the new child_process, or a "start timeout" error.
+process; calls the callback with the new child_process after it started, or on "unable
+to fork" or "start timeout" error.
 
 Child processes are automatically added to `qm.children` when they are forked.
 
