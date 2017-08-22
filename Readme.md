@@ -71,53 +71,6 @@ Options:
 - omitSignalHandler - do not catch or relay any signals to the workers.  Default false.
 - clusterSize - number of worker processes to create when starting the cluster.  Default none.
 
-## Events
-
-The qcluster manager emits 'fork' and 'exit' events when a new child is created and
-when it exits.
-
-## IPC Messages
-
-### qcluster.sendTo( child, name, value )
-
-Send a message to a worker process.  The message can be received in the worker with
-`process.on('message')` and tested with `qcluster.isQMessage()`.
-
-### qcluster.sendToParent( name, value )
-
-Send a message to the parent process.  Startup flow control messages are converted
-into process events, other messages arrive as process 'message' events.
-
-### qcluster.isQMessage( message )
-
-Tests that the message was sent with `sendToParent`.
-
-### Message Details
-
-The flow control events were described above in Worker Start Protocol.  In the parent,
-flow control messages are re-emitted as `child` object events; in the child, as
-`process` events.
-
-Other, non-flow-control `sendToParent` messages are received by the cluster master
-with the usual nodejs `cluster` IPC: `child.on('message')` or `cluster.on('message')`.
-The message format is
-
-    { v: 'qc-1',
-      pid: child.process.pid,
-      n: name,
-      m: value }
-
-The startup sequence consists of:
-
-- 'ready' child -> parent
-- 'start' parent -> child
-- 'started' child -> parent
-
-The shutdown sequence:
-
-- 'stop' parent -> child
-- 'stopped' child -> parent
-
 Example parent:
 
     var qm = qcluster.createCluster();
@@ -144,13 +97,20 @@ Example child:
         qcluster.sendToParent('stopped');
     })
 
-## Cluster Manager API
-
-`createCluster` a qcluster manager object with properties and methods:
+## Qcluster manager properties:
 
 ### qm.children
 
 Array of worker processes.
+
+
+## Qcluster manager events:
+
+The qcluster manager emits 'fork' and 'exit' events when a new child is created and
+when it exits.
+
+
+## Qcluster manager methods:
 
 ### qm.forkChild( [callback] )
 
@@ -189,6 +149,50 @@ handshakes, worker initialization and shutdown are gracefully overlapped.
 Child processes are replaced sequentially, one at a time.  Multiple requests are
 queued and processed in order of arrival.  If there is a fork error, start timeout or
 stop timeout, the new process is killed and the old process is left to run.
+
+
+## Qcluster IPC messages:
+
+### qcluster.sendTo( child, name, value )
+
+Send a message to a worker process.  The message can be received in the worker with
+`process.on('message')` and tested with `qcluster.isQMessage()`.
+
+### qcluster.sendToParent( name, value )
+
+Send a message to the parent process.  Startup flow control messages are converted
+into process events, other messages arrive as process 'message' events.
+
+### qcluster.isQMessage( message )
+
+Tests that the message was sent with `sendToParent`.
+
+
+## IPC Message Details
+
+The flow control events were described above in Worker Start Protocol.  In the parent,
+flow control messages are re-emitted as `child` object events; in the child, as
+`process` events.
+
+Other, non-flow-control `sendToParent` messages are received by the cluster master
+with the usual nodejs `cluster` IPC: `child.on('message')` or `cluster.on('message')`.
+The message format is
+
+    { v: 'qc-1',
+      pid: child.process.pid,
+      n: name,
+      m: value }
+
+The startup sequence consists of:
+
+- 'ready' child -> parent
+- 'start' parent -> child
+- 'started' child -> parent
+
+The shutdown sequence:
+
+- 'stop' parent -> child
+- 'stopped' child -> parent
 
 ## Todo
 
