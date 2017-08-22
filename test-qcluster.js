@@ -115,6 +115,15 @@ module.exports = {
                 return child
             });
         },
+
+        'should return fork error': function(t) {
+            var qm = qcluster.createCluster({ clusterSize: 1 }, function(err) {
+                t.ok(err);
+                t.equal(err.message, 'test fork error');
+                t.done();
+            })
+            t.stubOnce(qm, 'forkChild', function(cb) { cb(new Error("test fork error")) });
+        },
     },
 
     'sendTo': {

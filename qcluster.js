@@ -442,15 +442,20 @@ qcluster = {
                 },
                 function(cb) {
                     if (options.clusterSize > 0) {
-                        repeatUntil(
-                            function(cb) {
-                                if (qm.children.length >= options.clusterSize) return cb(null, true);
-                                qm.forkChild(function(err) { cb(err) });
-                            },
-                            function(err) {
-                                cb(err);
-                            }
-                        )
+                        var forkCount = 0;
+                        var forkErrors = [];
+
+                        // start the workers concurrently
+                        for (var i=0; i<options.clusterSize; i++) {
+                            qm.forkChild(function(err) {
+                                forkCount += 1;
+                                if (err) forkErrors.push(err);
+                                if (forkCount == options.clusterSize) {
+                                    if (forkErrors.length) return cb(forkErrors[0]);
+                                    return cb();
+                                }
+                            })
+                        }
                     }
                     else cb();
                 },
