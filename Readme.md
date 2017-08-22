@@ -138,7 +138,7 @@ stop timeout, the new process is killed and the old process is left to run.
 ### qm.isBeingReplaced( child )
 
 Check whether the child is already queued for replacement.  A child may be replaced
-only once
+only once.
 
 ## Signal Handling
 

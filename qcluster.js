@@ -111,6 +111,7 @@ QCluster.prototype._installRelays = function _installRelays( ) {
     for (var i=0; i<self.signalsToRelay.length; i++) {
         (function(sig) {
             process.on(sig, function(){
+                self.emit('trace', "relaying signal %s", sig);
                 if (self._forking) self._signalsQueued.push(sig);
                 else self._relaySignalsToChildren([sig], self.children);
             });
@@ -143,13 +144,16 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
 
     var child = cluster.fork();
     if (!child) {
+        this.emit('trace', "unable to fork new worker");
         var err = new Error("unable to fork");
         if (optionalCallback) return optionalCallback(err);
         else throw err;
     }
     child._pid = child.process.pid;
+    this.emit('trace', "forked new worker #%d", child._pid);
 
     child.once('exit', function(worker) {
+        self.emit('trace', "worker #%d exited", child._pid);
         self._removePid(child._pid);
         self.emit('exit', child);
     })
@@ -157,6 +161,13 @@ QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
     // re-emit qcluster flow control messages in master as child events
     child.on('message', function(msg) {
         self._hoistMessageEvent(child, msg);
+    })
+
+    child.once('ready', function() {
+        self.emit('trace', "new worker #%d ready", child._pid)
+    })
+    child.once('started', function() {
+        self.emit('trace', "new worker #%d started", child._pid);
     })
 
     self.startChild(child, function(err, child) {
@@ -212,6 +223,7 @@ QCluster.prototype.startChild = function startChild( child, options, callback ) 
     }
 
     function onChildStartTimeout( ) {
+        self.emit('trace', "new worker #%d failed to start in %d ms", child._pid, self.startTimeoutMs);
         // if child does not start in time, zap it
         self.killChild(child, 'SIGKILL');
         child._error = new Error("start timeout");
@@ -240,6 +252,7 @@ QCluster.prototype.existsProcess = function existsProcess( pid ) {
 }
 
 QCluster.prototype.stopChild = function stopChild( child, callback ) {
+    var self = this;
     var stopTimeoutTimer;
 
     var returned = false;
@@ -266,10 +279,12 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     stopTimeoutTimer = setTimeout(onStopTimeout, this.stopTimeoutMs);
 
     function onChildStopped() {
+        self.emit('trace', "worker #%d stopped", child._pid);
         callbackOnce(null, child);
     }
 
     function onStopTimeout( ) {
+        self.emit('trace', "worker #%d failed to stop in %d ms", child._pid, self.stopTimeoutMs);
         callbackOnce(new Error("stop timeout"), child);
     }
 }
@@ -305,6 +320,7 @@ QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
             }
             info.child._currentlyBeingReplaced = true;
 
+            self.emit('trace', "replacing worker #%d", info.child._pid);
             var child = info.child;
             var cb = info.cb;
             self._doReplaceChild(child, function(err, newChild) {
@@ -312,6 +328,7 @@ QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
                 // loop to check whether done and/or replace the next child
                 if (err) child._currentlyBeingReplaced = false;
                 setImmediate(doReplace);
+                self.emit('trace', "replaced worker #%d with new worker: ", child._pid, newChild && newChild._pid || err && err.message);
                 cb(err, newChild);
             })
         })
@@ -447,9 +464,11 @@ qcluster = {
 
                         // start the workers concurrently
                         for (var i=0; i<options.clusterSize; i++) {
-                            qm.forkChild(function(err) {
+                            qm.forkChild(function(err, child) {
                                 forkCount += 1;
                                 if (err) forkErrors.push(err);
+                                else qcluster.sendTo(child, 'start');
+                                // TODO: time out 'started' response
                                 if (forkCount == options.clusterSize) {
                                     if (forkErrors.length) return cb(forkErrors[0]);
                                     return cb();

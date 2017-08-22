@@ -4,6 +4,7 @@ var assert = require('assert');
 var child_process = require('child_process');
 var cluster = require('cluster');
 var fs = require('fs');
+var util = require('util');
 
 var qcluster = require('./');
 
@@ -295,6 +296,21 @@ module.exports = {
             t.equal(spyStartChild.callCount, 1);
             t.equal(spyStartChild.callArguments[0], child);
             t.done();
+        },
+
+        'should emit tracers': function(t) {
+            var tracers = [];
+            var qm = qcluster.createCluster({ startTimeoutMs: 1 });
+            qm.on('trace', function() {
+                tracers.push(util.format.apply(util, arguments));
+            })
+            t.stubOnce(cluster, 'fork', function(){ return mockChild() });
+            qm.forkChild(function(err) {
+                t.ok(tracers.length >= 2);
+                t.contains(tracers[0], 'forked');
+                t.contains(tracers[1], 'failed to start');
+                t.done();
+            })
         },
 
         'errors': {
