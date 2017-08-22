@@ -9,6 +9,11 @@ var events = require('events');
 
 var qcluster;
 
+// re-emit qcluster flow control messages in child as process events
+if (!cluster.isMaster) process.on('message', function(msg) {
+    QCluster._hoistMessageEvent(process, msg);
+})
+
 function QCluster( options ) {
     if (!options) options = {};
     this.children = [];
@@ -25,12 +30,6 @@ function QCluster( options ) {
     this._signalHandlerInstalled = false;
 
     events.EventEmitter.call(this);
-
-    // re-emit qcluster flow control messages in child as process events
-    var self = this;
-    if (!qcluster.isMaster) process.on('message', function(msg) {
-        self._hoistMessageEvent(process, msg);
-    })
 }
 util.inherits(QCluster, events.EventEmitter);
 
@@ -375,7 +374,7 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
 }
 
 // hoist flow control messages into cluster events
-QCluster.prototype._hoistMessageEvent = function hoistMessageEvent( target, m ) {
+QCluster._hoistMessageEvent = function hoistMessageEvent( target, m ) {
     // parent re-emits flow control events on target = child, child on target = process
     if (qcluster.isQMessage(m)) {
         switch (m.n) {
@@ -396,6 +395,7 @@ QCluster.prototype._hoistMessageEvent = function hoistMessageEvent( target, m ) 
         }
     }
 }
+QCluster.prototype._hoistMessageEvent = QCluster._hoistMessageEvent;
 
 QCluster.prototype._relaySignalsToChildren = function _relaySignalToChildren( signals, children ) {
     for (var si=0; si<signals.length; si++) {
