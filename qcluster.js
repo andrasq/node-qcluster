@@ -467,10 +467,10 @@ qcluster = {
                             qm.forkChild(function(err, child) {
                                 forkCount += 1;
                                 if (err) forkErrors.push(err);
-                                else qcluster.sendTo(child, 'start');
                                 // TODO: time out 'started' response
                                 if (forkCount == options.clusterSize) {
                                     if (forkErrors.length) return cb(forkErrors[0]);
+                                    for (var i=0; i<qm.children.length; i++) qcluster.sendTo(qm.children[i], 'start');
                                     return cb();
                                 }
                             })

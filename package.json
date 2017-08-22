@@ -1,6 +1,6 @@
 {
   "name": "qcluster",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "robust worker cluster management",
   "main": "qcluster.js",
   "license": "Apache-2.0",
