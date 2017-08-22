@@ -89,9 +89,13 @@ Array of worker processes.
 
 ## Qcluster manager events:
 
-The qcluster manager emits 'fork' and 'exit' events when a new child is created and
-when it exits.
+The qcluster manager emits certain events connected to worker process management.
 
+- 'fork' - when a new worker process is forked
+- 'exit' - when a worker process exits
+- 'trace' - on worker process management actions.  The arguments consist of a format
+  string and parameters, suitable for passing to `util.format` or `console.log` or
+  `sprintf`
 
 ## Qcluster manager methods:
 
