@@ -63,19 +63,6 @@ Stopping:
 - 'exit' - sent by nodejs to parent after child process exited
 
 
-## Signal Handling
-
-The `options.signalsToRelay` signals are caught by the qcluster master and re-sent to
-the worker processes.  Other signals are not treated as special.  The re-sent signals
-are ignored; other signals may kill the master.  'SIGSTOP' and 'SIGKILL' cannot be caught,
-and it is a nodejs error to try.
-
-Signals that arrive while a worker is initializing are queued and re-sent after the
-worker is 'ready' to let the app handle it and not kill the half-initialized process.
-This includes 'SIGTSTP', ie an initializing worker will not be suspended at the same
-time as the other workers.
-
-
 ## API
 
 ### qm = qcluster.createCluster( [options,] [callback] )
@@ -146,6 +133,19 @@ handshakes, worker initialization and shutdown are gracefully overlapped.
 Child processes are replaced sequentially, one at a time.  Multiple requests are
 queued and processed in order of arrival.  If there is a fork error, start timeout or
 stop timeout, the new process is killed and the old process is left to run.
+
+
+## Signal Handling
+
+The `options.signalsToRelay` signals are caught by the qcluster master and re-sent to
+the worker processes.  Other signals are not treated as special.  The re-sent signals
+are ignored; other signals may kill the master.  'SIGSTOP' and 'SIGKILL' cannot be caught,
+and it is a nodejs error to try.
+
+Signals that arrive while a worker is initializing are queued and re-sent after the
+worker is 'ready' to let the app handle it and not kill the half-initialized process.
+This includes 'SIGTSTP', ie an initializing worker will not be suspended at the same
+time as the other workers.
 
 
 ## Qcluster IPC messages:

@@ -414,6 +414,8 @@ module.exports = {
             t.equal(qm._replaceQueue.length, 1);
             t.equal(qm._replaceQueue[0].child, child);
             t.equal(typeof qm._replaceQueue[0].cb, 'function');
+            t.strictEqual(qm.isBeingReplaced(mockChild()), false);
+            t.strictEqual(qm.isBeingReplaced(child), true);
             t.done();
         },
 
@@ -425,6 +427,7 @@ module.exports = {
             var stub = t.stub(qm, '_doReplaceChild', function(child, cb) { cb() });
             qm.replaceChild(child, function() {
                 t.equal(stub.callCount, 1);
+                t.strictEqual(qm.isBeingReplaced(child), false);
             })
             t.strictEqual(qm._replacing, true);
             setTimeout(function() {
@@ -447,6 +450,28 @@ module.exports = {
             }, 10);
         },
 
+        'should replace a child only once': function(t) {
+            var qm = qcluster.createCluster();
+            var child = mockChild();
+            child._pid = 1;
+            t.stub(qm, '_doReplaceChild', function(child, cb) {
+                setTimeout(function() {
+                    cb(null, mockChild());
+                }, 20)
+            })
+            t.expect(3);
+            qm.replaceChild(child, function(err) {
+                t.ifError();
+            });
+            qm.replaceChild(child, function(err) {
+                t.equal(err.message, 'already being replaced');
+            });
+            qm.replaceChild(child, function(err) {
+                t.equal(err.message, 'already being replaced');
+                t.done();
+            });
+        },
+
         'should dequeue child even if error': function(t) {
             var qm = qcluster.createCluster();
             var child = mockChild();
@@ -456,6 +481,7 @@ module.exports = {
                 t.ok(err);
                 t.equal(err.message, 'test error');
                 t.equal(qm._replaceQueue.length, 0);
+                t.strictEqual(qm.isBeingReplaced(child), false);
                 t.done();
             })
         },

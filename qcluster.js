@@ -274,6 +274,12 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     }
 }
 
+QCluster.prototype.isBeingReplaced = function isBeingReplaced( child ) {
+    var queue = this._replaceQueue;
+    for (var i=0; i<queue.length; i++) if (queue[i].child === child) return true;
+    return false;
+}
+
 QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
     if (!oldChild) return callback(new Error("no child"));
     if (!(oldChild._pid > 0)) return callback(new Error("not our child"));
@@ -292,11 +298,19 @@ QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
                 return;
             }
 
+            // only replace once
+            if (info.child._currentlyBeingReplaced) {
+                setImmediate(doReplace);
+                return info.cb(new Error("already being replaced"));
+            }
+            info.child._currentlyBeingReplaced = true;
+
             var child = info.child;
             var cb = info.cb;
             self._doReplaceChild(child, function(err, newChild) {
                 // if error, _doReplaceChild leaves child running, does not replace
                 // loop to check whether done and/or replace the next child
+                if (err) child._currentlyBeingReplaced = false;
                 setImmediate(doReplace);
                 cb(err, newChild);
             })
