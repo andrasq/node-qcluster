@@ -140,11 +140,11 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
 
     var child = cluster.fork();
     if (!child) {
-        // not clear that fork ever fails, but just in case...
+        // not clear that fork ever not returns an object, but just in case...
         this.emit('trace', "unable to fork");
         var err = new Error("unable to fork");
-        if (optionalCallback) return optionalCallback(err);
-        else throw err;
+        if (optionalCallback) return optionalCallback(err, child);
+        else self.emit('error', err);
     }
     child._pid = child.process.pid;
     this.emit('trace', "forked new worker #%d", child._pid);

@@ -105,6 +105,9 @@ Add another child to the cluster, and start it.  Returns to the caller the child
 process; calls the callback with the new child_process after it started, or on "unable
 to fork" or "start timeout" error.
 
+If unable to fork, `qm` emits an `'error'` event, which if not listened for will be
+rethrown by nodejs as an exception.
+
 Child processes are automatically added to `qm.children` when they are forked.
 
 Signals received by the qcluster master are stored and re-sent to the child after it
