@@ -323,9 +323,13 @@ QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
             self._doReplaceChild(child, function(err, newChild) {
                 // if error, _doReplaceChild leaves child running, does not replace
                 // loop to check whether done and/or replace the next child
-                if (err) child._currentlyBeingReplaced = false;
+                if (err) {
+                    child._currentlyBeingReplaced = false;
+                    self.emit('trace', "could not replace worker #%d with #%d: %s", child._pid, newChild ? newChild._pid : 0, err.message);
+                } else {
+                    self.emit('trace', "replaced worker #%d with new worker #%d", child._pid, newChild._pid);
+                }
                 setImmediate(doReplace);
-                self.emit('trace', "replaced worker #%d with new worker: ", child._pid, newChild && newChild._pid || err && err.message);
                 cb(err, newChild);
             })
         })
@@ -341,9 +345,9 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
     var returned = false;
 
     // create a new child process
-    var newChild = self.forkChild(function(err) {
+    var newChild = self.forkChild(function(err, newChild) {
         // new child is 'ready' or start timeout or unable to fork
-        if (err) return callback(err);
+        if (err) return callback(err, newChild);
 
         // when replacement is ready, tell old child to stop
         // The worker process must implement the 'stop' -> 'stopped' protocol.

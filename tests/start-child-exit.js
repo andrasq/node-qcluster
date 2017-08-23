@@ -5,7 +5,7 @@ var qm = qcluster.createCluster();
 
 if (qcluster.isMaster) {
     var child = qm.forkChild(function(err, child) {
-        console.log('startChild callback, err', err.message);
+        console.log('startChild callback, err:', err.message);
     });
     child.on('exit', function(code) {
         console.log('child exited, code ' + code);

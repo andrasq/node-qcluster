@@ -449,7 +449,7 @@ module.exports = {
             t.strictEqual(qm._replacing, false);
             var child = mockChild();
             child._pid = 1;
-            var stub = t.stub(qm, '_doReplaceChild', function(child, cb) { cb() });
+            var stub = t.stub(qm, '_doReplaceChild', function(child, cb) { cb(new Error("no fork"), {_pid: -1}) });
             qm.replaceChild(child, function() {
                 t.equal(stub.callCount, 1);
                 t.strictEqual(qm.isBeingReplaced(child), false);
@@ -466,7 +466,7 @@ module.exports = {
             var child = mockChild();
             child._pid = 1;
             qm._replacing = true;
-            var stub = t.stub(qm, '_doReplaceChild', function(child, cb) { cb() });
+            var stub = t.stub(qm, '_doReplaceChild', function(child, cb) { cb(new Error("no fork")) });
             qm.replaceChild(child, function(err) {});
             setTimeout(function(err) {
                 t.equal(stub.callCount, 0);
@@ -510,6 +510,19 @@ module.exports = {
                 t.done();
             })
         },
+
+        'should return cluster.fork return value even if fork failed': function(t) {
+            var qm = qcluster.createCluster();
+            var child = mockChild();
+            child._pid = 1;
+            t.stub(cluster, 'fork', function() { return false });
+            qm.replaceChild(child, function(err, newChild) {
+                t.ok(err);
+                t.equal(err.message, "unable to fork");
+                t.strictEqual(newChild, false);
+                t.done();
+            })
+        },
     },
 
     'tests': {
@@ -548,7 +561,7 @@ module.exports = {
         'should start child exit': function(t) {
             this.runTest('start-child-exit', function(err, output) {
                 t.contains(output, 'child exited, code 123');
-                t.contains(output, 'startChild callback, err unexpected exit');
+                t.contains(output, 'startChild callback, err: unexpected exit');
                 t.done();
             })
         },
