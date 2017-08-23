@@ -4,7 +4,7 @@ var qcluster = require('../');
 var qm = qcluster.createCluster();
 
 if (qcluster.isMaster) {
-    var child = qm.forkChild({}, function() {
+    var child = qm.forkChild(function() {
         qm.killChild(child, 'SIGINT');
         qm.killChild(child);
     })

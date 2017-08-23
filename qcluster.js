@@ -132,20 +132,16 @@ QCluster.prototype._fetchQueuedSignals = function _fetchQueuedSignals( ) {
 /*
  * fork a new child process and wait for it to finish initializing
  */
-QCluster.prototype.forkChild = function forkChild( options, optionalCallback ) {
+QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
     var self = this;
-    if (typeof options === 'function') {
-        optionalCallback = options;
-        options = null;
-    }
-    options = options || {};
 
     // queue signals received while forking, to relay to child
     this._forking = true;
 
     var child = cluster.fork();
     if (!child) {
-        this.emit('trace', "unable to fork new worker");
+        // not clear that fork ever fails, but just in case...
+        this.emit('trace', "unable to fork");
         var err = new Error("unable to fork");
         if (optionalCallback) return optionalCallback(err);
         else throw err;
