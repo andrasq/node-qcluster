@@ -207,16 +207,6 @@ The message format is
       n: name,
       m: value }
 
-The startup sequence consists of:
-
-- 'ready' child -> parent
-- 'start' parent -> child
-- 'started' child -> parent
-
-The shutdown sequence:
-
-- 'stop' parent -> child
-- 'stopped' child -> parent
 
 ## Todo
 
