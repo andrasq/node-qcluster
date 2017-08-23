@@ -75,7 +75,8 @@ Options:
 - stopTimeoutMs - how long to allow a child process to take to stop.  Default 20000 ms.
 - startedIfListening - whether to consider a 'listening' event equivalent to 'started.  Default true.
 - signalsToRelay - which signals the master should catch and relay to the workers.  Default is
-  [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP' ].  SIGTSTP is relayed as SIGSTOP.
+  [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP', 'SIGCONT' ].
+  SIGTSTP handling is special; see Signal Handling below.
 - omitSignalHandler - do not catch or relay any signals to the workers.  Default false.
 - clusterSize - number of worker processes to create when starting the cluster.  Default none.
 
@@ -160,10 +161,18 @@ the worker processes.  Other signals are not treated as special.  The re-sent si
 are ignored; other signals may kill the master.  'SIGSTOP' and 'SIGKILL' cannot be caught,
 and it is a nodejs error to try.
 
+A received SIGTSTP is converted to SIGSTOP and after relaying is resent to self to
+pause both worker processes and self.  The next SIGCONT will resume self, and is
+relayed to all worker processes to resume them.
+
+Signals that arrive while a process is paused are stored by the system and will not be
+relayed until after a SIGCONT first resumes the master.  The relayed signal is sent to
+the still paused workers before the SIGCONT, so signal delivery order is maintained.
+
 Signals that arrive while a worker is initializing are queued and re-sent after the
-worker is 'ready' to let the app handle it and not kill the half-initialized process.
-This includes 'SIGTSTP', ie an initializing worker will not be suspended at the same
-time as the other workers.
+worker is 'ready', letting the worker handle the signal without killing the
+half-initialized process.  This includes 'SIGTSTP', ie an initializing worker will not
+be suspended at the same time as the other workers.
 
 
 ## Qcluster IPC messages:

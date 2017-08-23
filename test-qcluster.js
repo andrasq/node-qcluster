@@ -681,8 +681,13 @@ module.exports = {
 
         'should relay stop': function(t) {
             this.runTest('relay-stop', function(err, output) {
-                t.contains(output, 'callCount = 2');
-                t.contains(output, 'signal = SIGSTOP');
+                t.contains(output, 'callCount = 4');
+                t.contains(output, 'signal1 = SIGTSTP');        // test TSTP
+                t.contains(output, 'signal2 = SIGSTOP');        // child STOP
+                t.contains(output, 'signal3 = SIGSTOP');        // self STOP
+                t.contains(output, 'signal4 = SIGCONT');        // child CONT
+                t.contains(output, 'child SIGCONT');
+                t.notContains(output, 'child SIGTSTP');
                 t.done();
             })
         },

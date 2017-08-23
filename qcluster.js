@@ -22,7 +22,7 @@ function QCluster( options ) {
     this.startTimeoutMs = options.startTimeoutMs || 30000;
     this.stopTimeoutMs = options.stopTimeoutMs || 20000;
     this.startedIfListening = options.startedIfListening != null ? options.startedIfListening : true;
-    this.signalsToRelay = options.signalsToRelay || [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP' ];
+    this.signalsToRelay = options.signalsToRelay || [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP', 'SIGCONT' ];
     // note: it is an error in node to listen for (the uncatchable) SIGSTOP
     // note: SIGUSR1 starts the built-in debugger agent (listens on port 5858)
     this._signalsQueued = [];
@@ -115,6 +115,8 @@ QCluster.prototype._installRelays = function _installRelays( ) {
                 self.emit('trace', "relaying signal %s", sig);
                 if (self._forking) self._signalsQueued.push(sig);
                 else self._relaySignalsToChildren([sig], self.children);
+                // suspend self on ^Z
+                if (sig === 'SIGTSTP') setImmediate(function() { process.kill(process.pid, 'SIGSTOP') });
             });
             // TODO: save the signal relayers so they can be uninstalled
         })(self.signalsToRelay[i]);
