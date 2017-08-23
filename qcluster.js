@@ -10,6 +10,8 @@ var events = require('events');
 var qcluster;
 
 // re-emit qcluster flow control messages in child as process events
+// Also, listening to 'disconnect' or 'message' events ref-s the IPC channel,
+// preventing the child process from exiting until it first disconnects.
 if (!cluster.isMaster) process.on('message', function(msg) {
     QCluster._hoistMessageEvent(process, msg);
 })
