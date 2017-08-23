@@ -292,6 +292,14 @@ QCluster.prototype.isBeingReplaced = function isBeingReplaced( child ) {
     return false;
 }
 
+QCluster.prototype.cancelReplace = function cancelReplace( child ) {
+    var queue = this._replaceQueue;
+    for (var i=0; i<queue.length; i++) if (queue[i].child === child) {
+        queue.splice(i, 1);
+        i--;
+    }
+}
+
 QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
     if (!oldChild) return callback(new Error("no child"));
     if (!(oldChild._pid > 0)) return callback(new Error("not our child"));

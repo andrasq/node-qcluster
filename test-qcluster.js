@@ -525,6 +525,41 @@ module.exports = {
         },
     },
 
+    'cancelReplaceChild': {
+        'should dequeue child': function(t) {
+            var qm = qcluster.createCluster();
+            t.stub(qm, '_doReplaceChild');
+
+            var child = mockChild();
+            child._pid = 1;
+            qm.replaceChild(child, function(){});
+            qm.replaceChild(child, function(){});
+            t.equal(qm._replaceQueue.length, 2);
+
+            qm.cancelReplace(child);
+            t.equal(qm._replaceQueue.length, 0)
+            t.done();
+        },
+
+        'should not dequeue other children': function(t) {
+            var qm = qcluster.createCluster();
+            t.stub(qm, '_doReplaceChild');
+
+            var child1 = mockChild();
+            child1._pid = 1;
+            var child2 = mockChild();
+            child2._pid = 2;
+            qm.replaceChild(child1, function(){});
+            qm.replaceChild(child2, function(){});
+            t.equal(qm._replaceQueue.length, 2);
+
+            qm.cancelReplace(child1);
+            t.equal(qm._replaceQueue.length, 1)
+            t.equal(qm._replaceQueue[0].child, child2)
+            t.done();
+        },
+    },
+
     'tests': {
         setUp: function(done) {
             /*

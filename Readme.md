@@ -147,6 +147,12 @@ stop timeout, the new process is killed and the old process is left to run.
 Check whether the child is already queued for replacement.  A child may be replaced
 only once.
 
+### qm.cancelReplace( child )
+
+Cancel any pending replacement for the child.  A replacement already in progress is
+not interrupted.
+
+
 ## Signal Handling
 
 The `options.signalsToRelay` signals are caught by the qcluster master and re-sent to
