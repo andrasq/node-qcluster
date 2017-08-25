@@ -366,11 +366,12 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
         // tell new child to start listening
         // The worker must use the 'ready' -> 'start' -> 'started' protocol.
         qcluster.sendTo(newChild, 'start');
+
+        // when replacement is listening, tell old child to stop
+        // The worker must use the 'stop' -> 'stopped' protocol.
         newChild.once('started', function() {
             // new child is now online and accepting requests
 
-            // when replacement is listening, tell old child to stop
-            // The worker must use the 'stop' -> 'stopped' protocol.
             self.stopChild(oldChild, function(err) {
                 // old child is 'stopped' (or exited) or stop timeout
                 if (err) {
@@ -380,12 +381,13 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
                         // if new child did not stop, leave it run; it should stop eventually
                         self.emit('trace', "replacement worker #%d did not stop, is not removed", newChild._pid);
                     })
-                    return callback(err);
+                    return callback(err, newChild);
                 }
 
+                // TODO: why is this trace being logged twice??
                 self.emit('trace', "replaced worker #%d with new worker #%d", oldChild._pid, newChild._pid);
                 callback(null, newChild);
-            })            
+            })
         })
     })
 }
