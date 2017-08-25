@@ -376,7 +376,7 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
                 if (err) {
                     // if old child did not stop, clean up new child and keep old child running
                     self.emit('trace', "replace failed, removing new worker #%d", newChild._pid);
-                    self.stopChild(newChild, function(err) {
+                    self.stopChild(newChild, function(err2) {
                         // if new child did not stop, leave it run; it should stop eventually
                         self.emit('trace', "replacement worker #%d did not stop, is not removed", newChild._pid);
                     })
@@ -386,26 +386,6 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
                 self.emit('trace', "replaced worker #%d with new worker #%d", oldChild._pid, newChild._pid);
                 callback(null, newChild);
             })            
-        })
-
-        self.stopChild(oldChild, function(err) {
-            // old child is 'stopped' (or exited) or stop timeout
-            if (err) {
-                // if old child did not stop, let old child run and clean up new child
-                self.killChild(newChild, 'SIGKILL');
-                return callback(err);
-            }
-
-            // once old child stops, tell new child to start
-            // This avoids both processes being active at the same time,
-            // in case the underlying code does not support concurrency.
-            // The worker process must implement the 'start' -> 'started' protocol.
-            // TODO: option to start new child while old is still listening (ie overlap)
-            qcluster.sendTo(newChild, 'start');
-            newChild.once('started', function() {
-                // new child is online and listening for requests
-                callback(null, newChild);
-            })
         })
     })
 }
@@ -538,6 +518,13 @@ qcluster = {
     repeatUntil: repeatUntil,
     iterate: iterate,
 }
+
+// export class methods as instance methods as well, else too confusing
+QCluster.prototype.sendTo = QCluster.sendTo;
+QCluster.prototype.sendToParent = QCluster.sendToParent;
+QCluster.prototype.disconnectFrom = QCluster.disconnectFrom;
+QCluster.prototype.disconnectFromParent = QCluster.disconnectFromParent;
+QCluster.prototype.isQMessage = QCluster.isQMessage;
 
 QCluster.prototype = QCluster.prototype;
 
