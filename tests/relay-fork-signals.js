@@ -15,8 +15,11 @@ function runTest() {
             console.log("queued signal: %s", spy.callArguments[0]);
             setTimeout(function() {
                 console.log("child exists?", qm.existsProcess(child._pid));
-            }, 50);
-            // TODO: race condition: 50ms maybe not enough for child to act on signal
+            }, 500);
+            child.on('exit', function() {
+                console.log("child exists?", qm.existsProcess(child._pid));
+                qcluster._delayExit();
+            })
         })
 
         // the cluster master relays signals, is not killed by them
@@ -29,5 +32,6 @@ function runTest() {
             qcluster._delayExit();
         })
         qcluster.sendToParent('started');
+        setTimeout(function waitForever() {}, 999999999);
     }
 }

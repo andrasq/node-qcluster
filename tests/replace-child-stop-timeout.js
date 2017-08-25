@@ -10,7 +10,7 @@ if (qcluster.isMaster) {
         qm.stopTimeoutMs = 1;
         qm.replaceChild(child1, function(err, child2) {
             console.log("child2 replace error: %s", !!err);
-            if (err) console.log("fork error: %s", err.message);
+            if (err) console.log("replace error: %s", err.message);
             qm.on('exit', function(child) {
                 console.log("still have child1: %s", (qm.children.length > 0 && qm.children[0]._pid === child1._pid));
                 if (child != child1) {
