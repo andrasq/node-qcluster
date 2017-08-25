@@ -7,9 +7,8 @@ if (qcluster.isMaster) {
     qm.forkChild(function(err, child1) {
         console.log("child1 pid %d", child1._pid);
 
-        // force a stop timeout on child1, and do not let it exit
+        // force a stop timeout on child1
         qm.stopTimeoutMs = 1;
-        qcluster.sendTo(child1, 'exitOnStop', false);
 
         qm.replaceChild(child1, function(err, child2) {
             console.log("child2 replace error: %s", !!err);
@@ -26,19 +25,16 @@ if (qcluster.isMaster) {
     })
 }
 else {
+    var cluster = require('cluster');
+
     // replaceChild requires the ready -> start -> started protocol
     qcluster.sendToParent('ready');
     process.on('start', function() {
         qcluster.sendToParent('started');
     })
 
-    var exitOnStop = true;
-    process.on('message', function(m) {
-        if (qcluster.isQMessage(m) && m.n === 'exitOnStop') {
-            exitOnStop = m.m;
-        }
-    })
+    // make first child be busy, second exits
     process.on('stop', function() {
-        if (exitOnStop) process.disconnect();
+        if (cluster.worker.id > 1) process.disconnect();
     })
 }
