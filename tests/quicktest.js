@@ -22,6 +22,9 @@ else {
     process.on('SIGTERM', function() {
         console.log("child killed, pid %d", process.pid);
         process.disconnect();
+        // note: using disconnect() does not ensure that the "child killed" is written to stdout.
+        // delay the exit explicitly to work around this.
+        qcluster._delayExit(10);
     })
 }
 
