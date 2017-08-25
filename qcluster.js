@@ -359,10 +359,35 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
         // new child is 'ready' or start timeout or unable to fork
         if (err) return callback(err, newChild);
 
-        // when replacement is ready, tell old child to stop
-        // The worker process must implement the 'stop' -> 'stopped' protocol.
-        // Note: once we stopped the old child, if the new child dies
-        // or cannot listen, we might be left short a worker.
+        // Overlap the new child and old child to keep the socket open on node > v0.10.
+        // Without the overlap the cluster master stops listening on the port, and new
+        // connections stop getting forwarded to the new child.
+
+        // tell new child to start listening
+        // The worker must use the 'ready' -> 'start' -> 'started' protocol.
+        qcluster.sendTo(newChild, 'start');
+        newChild.once('started', function() {
+            // new child is now online and accepting requests
+
+            // when replacement is listening, tell old child to stop
+            // The worker must use the 'stop' -> 'stopped' protocol.
+            self.stopChild(oldChild, function(err) {
+                // old child is 'stopped' (or exited) or stop timeout
+                if (err) {
+                    // if old child did not stop, clean up new child and keep old child running
+                    self.emit('trace', "replace failed, removing new worker #%d", newChild._pid);
+                    self.stopChild(newChild, function(err) {
+                        // if new child did not stop, leave it run; it should stop eventually
+                        self.emit('trace', "replacement worker #%d did not stop, is not removed", newChild._pid);
+                    })
+                    return callback(err);
+                }
+
+                self.emit('trace', "replaced worker #%d with new worker #%d", oldChild._pid, newChild._pid);
+                callback(null, newChild);
+            })            
+        })
+
         self.stopChild(oldChild, function(err) {
             // old child is 'stopped' (or exited) or stop timeout
             if (err) {

@@ -22,5 +22,9 @@ if (qcluster.isMaster) {
     })
 }
 else {
-    qcluster.sendToParent('started');
+    // replaceChild requires the ready -> start -> started protocol
+    qcluster.sendToParent('ready');
+    process.on('start', function() {
+        qcluster.sendToParent('started');
+    })
 }
