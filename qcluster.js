@@ -133,6 +133,7 @@ QCluster.prototype._fetchQueuedSignals = function _fetchQueuedSignals( ) {
 
 /*
  * fork a new child process and wait for it to finish initializing
+ * The child will serve requests once it is told to 'start'.
  */
 QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
     var self = this;
@@ -184,6 +185,7 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
 
 /*
  * wait for a newly forked child process to finish initializing
+ * The child will serve requests once it is told to 'start'.
  */
 QCluster.prototype.startChild = function startChild( child, options, callback ) {
     var self = this;
@@ -250,6 +252,11 @@ QCluster.prototype.existsProcess = function existsProcess( pid ) {
     catch (err) { return false }
 }
 
+/*
+ * Tell the child to stop listening for requests.
+ * The child should wait for 'quit' before disconnecting or exiting,
+ * else replaceChild will not work.
+ */
 QCluster.prototype.stopChild = function stopChild( child, callback ) {
     var self = this;
     var stopTimeoutTimer;
@@ -378,7 +385,8 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
             // TODO: option to start new child while old is still listening (ie overlap)
             qcluster.sendTo(newChild, 'start');
             newChild.once('started', function() {
-                // new child is online and listening for requests
+                // new child is online and listening for requests, ok for old child to exit
+                qcluster.sendTo(oldChild, 'quit');
                 callback(null, newChild);
             })
         })
@@ -447,7 +455,7 @@ function iterate( actions, done ) {
     var ix = 0;
     repeatUntil(function(cb) {
         if (ix >= actions.length) return cb(null, true);
-        actions[ix++](cb);
+        actions[ix++](function(err) { cb(err) });
     }, done);
 }
 
@@ -483,6 +491,7 @@ qcluster = {
                                 if (forkCount == options.clusterSize) {
                                     if (forkErrors.length) return cb(forkErrors[0]);
                                     for (var i=0; i<qm.children.length; i++) qcluster.sendTo(qm.children[i], 'start');
+                                    // TODO: returns before workers have started listening
                                     return cb();
                                 }
                             })
@@ -513,6 +522,13 @@ qcluster = {
     repeatUntil: repeatUntil,
     iterate: iterate,
 }
+
+// export class methods as instance methods as well, else too confusing
+QCluster.prototype.sendTo = QCluster.sendTo;
+QCluster.prototype.sendToParent = QCluster.sendToParent;
+QCluster.prototype.disconnectFrom = QCluster.disconnectFrom;
+QCluster.prototype.disconnectFromParent = QCluster.disconnectFromParent;
+QCluster.prototype.isQMessage = QCluster.isQMessage;
 
 QCluster.prototype = QCluster.prototype;
 

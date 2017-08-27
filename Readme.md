@@ -22,6 +22,10 @@ Sample parent:
                 console.log("child #%d sent message", message.pid, message);
             }
         })
+
+        qm.replaceChild(child1, function(err, child2) {
+            qcluster.sendTo(child2, 'quit');
+        })
     })
 
 Sample child:
@@ -37,6 +41,10 @@ Sample child:
         process.on('stop', function() {
             app.close();
             qcluster.sendToParent('stopped');
+        })
+
+        process.on('quit', function() {
+            process.disconnect();
         })
     })
 
@@ -206,6 +214,27 @@ The message format is
       pid: child.process.pid,
       n: name,
       m: value }
+
+
+## Nodejs Cluster Notes
+
+- A cluster worker will start receiving requests (forwarded by the master) as soon as
+  it listens on *any* connection.  If a service listens for requests on port 80 and
+  for status queries on port 1337, it will be sent requests as soon as it starts
+  listening on either port.
+
+- A cluster worker keeps getting requests as long as it is listening on *any*
+  connection.  If the above server closes port 80, it will still get requests as long
+  as port 1337 is still open.
+
+- If no workers are listening, incoming requests get an ECONNREFUSED error (node-v0.10
+  just hangs).
+
+- The cluster master process will not exit until all worker processes have exited
+  or disconnected.
+
+- Listening to 'disconnect' or 'message' worker events `ref`-s the IPC channel and
+  prevents the child process from exiting until disconnect.
 
 
 ## Todo
