@@ -9,22 +9,30 @@ var events = require('events');
 
 var qcluster;
 
-// re-emit qcluster flow control messages in child as process events
-// Also, listening to 'disconnect' or 'message' events ref-s the IPC channel,
+// re-emit qcluster flow control messages as events.
+// Listening to 'disconnect' or 'message' events ref-s the IPC channel,
 // preventing the child process from exiting until it first disconnects.
-if (!cluster.isMaster) process.on('message', function(msg) {
-    QCluster._hoistMessageEvent(process, msg);
-})
+if (!cluster.isMaster) {
+    // child cluster events arrive as messages on process
+    process.on('message', function(msg) { QCluster._hoistMessageEvent(process, msg) });
+}
+else {
+    // qcluster cluster events arrive as messages on the child
+    cluster.on('message', function(worker, msg) { QCluster._hoistMessageEvent(worker, msg) });
+}
 
 function QCluster( options ) {
     if (!options) options = {};
     this.children = [];
+
     this.startTimeoutMs = options.startTimeoutMs || 30000;
     this.stopTimeoutMs = options.stopTimeoutMs || 20000;
     this.startedIfListening = options.startedIfListening != null ? options.startedIfListening : true;
+    this.disconnectIfStop = false;
     this.signalsToRelay = options.signalsToRelay || [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP', 'SIGCONT' ];
     // note: it is an error in node to listen for (the uncatchable) SIGSTOP
     // note: SIGUSR1 starts the built-in debugger agent (listens on port 5858)
+
     this._signalsQueued = [];
     this._forking = false;
     this._replaceQueue = [];
@@ -71,6 +79,16 @@ QCluster.log = function log( /* VARARGS */ ) {
     fs.writeFileSync("/dev/tty", util.format.apply(util, arguments) + '\n', {flag: 'a'});
 }
 
+
+/**
+QCluster.prototype.childrenCount = function childrenCount( ) {
+    var count = 0;
+    for (var i=0; i<this.children.length; i++) {
+        if (this.children[i].isConnected()) count += 1;
+    }
+    return count;
+}
+**/
 
 /*
  * arrange for signals to be relayed to all child processes
@@ -133,7 +151,6 @@ QCluster.prototype._fetchQueuedSignals = function _fetchQueuedSignals( ) {
 
 /*
  * fork a new child process and wait for it to finish initializing
- * The child will serve requests once it is told to 'start'.
  */
 QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
     var self = this;
@@ -152,17 +169,15 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
     child._pid = child.process.pid;
     this.emit('trace', "forked new worker #%d", child._pid);
 
-    child.once('exit', function(worker) {
+    child.once('exit', function() {
         self.emit('trace', "worker #%d exited", child._pid);
         self._removePid(child._pid);
         self.emit('exit', child);
     })
 
-    // re-emit qcluster flow control messages in master as child events
-    child.on('message', function(msg) {
-        self._hoistMessageEvent(child, msg);
+    child.once('disconnect', function() {
+        self.emit('trace', "worker #%d disconnected", child._pid)
     })
-
     child.once('ready', function() {
         self.emit('trace', "new worker #%d ready", child._pid)
     })
@@ -185,7 +200,6 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
 
 /*
  * wait for a newly forked child process to finish initializing
- * The child will serve requests once it is told to 'start'.
  */
 QCluster.prototype.startChild = function startChild( child, options, callback ) {
     var self = this;
@@ -225,10 +239,12 @@ QCluster.prototype.startChild = function startChild( child, options, callback ) 
 
     function onChildStartTimeout( ) {
         self.emit('trace', "new worker #%d failed to start in %d ms", child._pid, self.startTimeoutMs);
+
         // if child does not start in time, zap it
         self.killChild(child, 'SIGKILL');
-        child._error = new Error("start timeout");
+
         // return both the timeout error and the child
+        child._error = new Error("start timeout");
         callbackOnce(child._error, child);
     }
 
@@ -241,8 +257,10 @@ QCluster.prototype.startChild = function startChild( child, options, callback ) 
 QCluster.prototype.killChild = function killChild( child, signal ) {
     // 0 and 'SIGHUP' are accepted signals, but 1 ('SIGHUP') is not
     if (!signal) signal = 'SIGTERM';
+
     try { if (child && child._pid) process.kill(child._pid, signal) }
     catch (err) { /* suppress "not exists" and "no permissions" errors */ }
+
     // TODO: start a stopTimeoutTimer, re-kill if times out
 }
 
@@ -254,8 +272,6 @@ QCluster.prototype.existsProcess = function existsProcess( pid ) {
 
 /*
  * Tell the child to stop listening for requests.
- * The child should wait for 'quit' before disconnecting or exiting,
- * else replaceChild will not work.
  */
 QCluster.prototype.stopChild = function stopChild( child, callback ) {
     var self = this;
