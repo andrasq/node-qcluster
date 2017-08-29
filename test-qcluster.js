@@ -732,6 +732,17 @@ module.exports = {
             })
         },
 
+        'should replace child listening': function(t) {
+            this.runTest('replace-child-listening', function(err, output) {
+                t.contains(output, 'child1 pid');
+                t.contains(output, 'child2 pid');
+                t.contains(output, 'after replace, child1 connected = false');
+                t.contains(output, 'after replace, child2 connected = true');
+                t.contains(output, 'after stop, child2 connected = false');
+                t.done();
+            })
+        },
+
         'should relay signals': function(t) {
             this.runTest('relay-signals', function(err, output) {
                 t.contains(output, 'child running');
