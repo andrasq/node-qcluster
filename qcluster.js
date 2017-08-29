@@ -28,7 +28,7 @@ function QCluster( options ) {
     this.startTimeoutMs = options.startTimeoutMs || 30000;
     this.stopTimeoutMs = options.stopTimeoutMs || 20000;
     this.startedIfListening = options.startedIfListening != null ? options.startedIfListening : true;
-    this.disconnectIfStop = false;
+    this.disconnectIfStop = options.disconnectIfStop || false;
     this.signalsToRelay = options.signalsToRelay || [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP', 'SIGCONT' ];
     // note: it is an error in node to listen for (the uncatchable) SIGSTOP
     // note: SIGUSR1 starts the built-in debugger agent (listens on port 5858)
@@ -299,6 +299,16 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     }
 
     qcluster.sendTo(child, 'stop');
+
+    // disconnect() old worker to guarantee that it will run no more calls.
+    // Disconnect after stopChild has installed its exit listeners.
+    // Without disconnect() the new and old workers are simultaneously active for
+    // a few ms until the worker replies that is has closed its listen ports.
+    // We prefer to keep the IPC connection open to allow the qcluster manager to
+    // continue to receive messages from the old worker until it exits.
+    //
+    if (self.disconnectIfStop) child.disconnect();
+
     child.on('stopped', onChildStopped);
     child.on('exit', onChildStopped);
     // TODO: should 'disconnect' from cluster master mean stopped?
@@ -393,6 +403,8 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
         }
         else {
             // 'ready', 'started' or 'listening'
+            // tyipcally the child 
+console.log("AR: _doReplaceChild: new child #%d started", newChild._pid, newChild._isStarted);
             if (!newChild._isStarted) qcluster.sendTo(newChild, 'start');
         }
     })
@@ -434,15 +446,6 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
             }
             else return callback(null, newChild);
         })
-
-        // disconnect() old worker to guarantee that it will run no more calls.
-        // Disconnect after stopChild has installed its exit listeners.
-        // Without disconnect() the new and old workers are simultaneously active for
-        // a few ms until the worker replies that is has closed its listen ports.
-        // We prefer to keep the IPC connection open to allow the qcluster manager to
-        // continue to receive messages from the old worker until it exits.
-        //
-        if (self.disconnectIfStop) oldChild.disconnect();
     }
 }
 
