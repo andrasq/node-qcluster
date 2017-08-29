@@ -218,6 +218,16 @@ The message format is
 
 ## Nodejs Cluster Notes
 
+- The cluster master listens on the service socket, accepts connections, and sends a
+  message to one of the workers to invoke the request handler.  This magic is hidden
+  inside the `net` module.
+
+- Listening to 'disconnect' or 'message' worker events `ref`-s the IPC channel and
+  prevents the child process from exiting until disconnect.
+
+- The cluster master process will not exit until all worker processes have exited
+  or disconnected.
+
 - A cluster worker will start receiving requests (forwarded by the master) as soon as
   it listens on *any* connection.  If a service listens for requests on port 80 and
   for status queries on port 1337, it will be sent requests as soon as it starts
@@ -228,13 +238,8 @@ The message format is
   as port 1337 is still open.
 
 - If no workers are listening, incoming requests get an ECONNREFUSED error (node-v0.10
-  just hangs).
-
-- The cluster master process will not exit until all worker processes have exited
-  or disconnected.
-
-- Listening to 'disconnect' or 'message' worker events `ref`-s the IPC channel and
-  prevents the child process from exiting until disconnect.
+  just hangs).  Stopping one worker before its replacement is listening opens a race
+  condition window during which requests would not be served.
 
 
 ## Todo
