@@ -175,14 +175,19 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
         self.emit('exit', child);
     })
 
-    child.once('disconnect', function() {
-        self.emit('trace', "worker #%d disconnected", child._pid)
-    })
     child.once('ready', function() {
-        self.emit('trace', "new worker #%d ready", child._pid)
+        self.emit('trace', "new worker #%d 'ready'", child._pid)
     })
     child.once('started', function() {
-        self.emit('trace', "new worker #%d started", child._pid);
+        self._isStarted = true;
+        self.emit('trace', "new worker #%d 'started'", child._pid);
+    })
+    child.once('listening', function() {
+        self._isStarted = true;
+        self.emit('trace', "new worker #%d 'listening'", child._pid);
+    })
+    child.once('disconnect', function() {
+        self.emit('trace', "worker #%d 'disconnect'", child._pid)
     })
 
     self.startChild(child, function(err, child) {
@@ -371,42 +376,74 @@ QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
 
 /*
  * replace the old child with a newly forked child worker process.
- * The workers must observe the 'ready' -> 'start' -> 'started' -> 'stop' -> 'stopped' protocol.
  */
 QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callback ) {
     var self = this;
     var returned = false;
 
-    // create a new child process
+    // create a new worker process
     var newChild = self.forkChild(function(err, newChild) {
-        // new child is 'ready' or start timeout or unable to fork
-        if (err) return callback(err, newChild);
+        if (err) {
+            // start timeout or unable to fork
+            if (newChild) {
+                newChild.removeListener('listening', onListening);
+                newChild.removeListener('started', onListening);
+            }
+            return callback(err, newChild);
+        }
+        else {
+            // 'ready', 'started' or 'listening'
+            if (!newChild._isStarted) qcluster.sendTo(newChild, 'start');
+        }
+    })
 
-        // when replacement is ready, tell old child to stop
-        // The worker process must implement the 'stop' -> 'stopped' protocol.
-        // Note: once we stopped the old child, if the new child dies
-        // or cannot listen, we might be left short a worker.
+    /*
+     * Ideally we would like full hanshaking, telling the worker to transition
+     * 'ready' -> 'start' -> 'started' and 'stop' -> 'stopped' -> 'quit'.
+     * However, nodejs does not keep the socket open between workers, and
+     * keeps sending requests to a worker until it closes all listen sockets.
+     *
+     * So we use a truncated handshake with a small overlap, letting the 'listening'
+     * (or 'started') of the new worker trigger the 'close' of the old worker, and
+     * hoping that the old worker closes its socket with minimal delay.  The overlap
+     * should be at most a few milliseconds.
+     */
+
+    if (newChild && !newChild._isStarted) {
+        newChild.once('started', onListening);
+        newChild.once('listening', onListening);
+    }
+    function onListening() {
+        // new child is online and listening for requests, old child should stop
+        // note: nodejs adds a worker to the pool as soon as it is 'listening'
+        // on *any* port, and removes it only after 'disconnect' from *all* ports.
+        //
+        newChild.removeListener('started', onListening);
+        newChild.removeListener('listening', onListening);
+
+        // immediately when replacement is ready and listening, stop the old worker
+        // Once old worker closes all listened-on sockets, it will get no more requests,
+        // but until then for a few ms both old and new worker are sent requests.
+        //
         self.stopChild(oldChild, function(err) {
-            // old child is 'stopped' (or exited) or stop timeout
-            if (err) {
-                // if old child did not stop, let old child run and clean up new child
+            if (err && !self.disconnectIfStop) {
+                // if old child did not stop, let it run and clean up new child
+                // However, if we already disconnected from the old child, keep the new.
                 self.killChild(newChild, 'SIGKILL');
                 return callback(err);
             }
-
-            // once old child stops, tell new child to start
-            // This avoids both processes being active at the same time,
-            // in case the underlying code does not support concurrency.
-            // The worker process must implement the 'start' -> 'started' protocol.
-            // TODO: option to start new child while old is still listening (ie overlap)
-            qcluster.sendTo(newChild, 'start');
-            newChild.once('started', function() {
-                // new child is online and listening for requests, ok for old child to exit
-                qcluster.sendTo(oldChild, 'quit');
-                callback(null, newChild);
-            })
+            else return callback(null, newChild);
         })
-    })
+
+        // disconnect() old worker to guarantee that it will run no more calls.
+        // Disconnect after stopChild has installed its exit listeners.
+        // Without disconnect() the new and old workers are simultaneously active for
+        // a few ms until the worker replies that is has closed its listen ports.
+        // We prefer to keep the IPC connection open to allow the qcluster manager to
+        // continue to receive messages from the old worker until it exits.
+        //
+        if (self.disconnectIfStop) oldChild.disconnect();
+    }
 }
 
 // hoist flow control messages into cluster events

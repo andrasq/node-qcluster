@@ -82,6 +82,8 @@ Options:
 - startTimeoutMs - how long to allow a child process to become 'ready'.  Default 30000 ms.
 - stopTimeoutMs - how long to allow a child process to take to stop.  Default 20000 ms.
 - startedIfListening - whether to consider a 'listening' event equivalent to 'started.  Default true.
+- disconnectIfStop - when replacing a child, whether to immediately disconnect after sending 'stop'.
+  Default false.
 - signalsToRelay - which signals the master should catch and relay to the workers.  Default is
   [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP', 'SIGCONT' ].
   SIGTSTP handling is special; see Signal Handling below.
