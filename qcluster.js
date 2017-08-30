@@ -16,10 +16,6 @@ if (!cluster.isMaster) {
     // child cluster events arrive as messages on process
     process.on('message', function(msg) { QCluster._hoistMessageEvent(process, msg) });
 }
-else {
-    // qcluster cluster events arrive as messages on the child
-    cluster.on('message', function(worker, msg) { QCluster._hoistMessageEvent(worker, msg) });
-}
 
 function QCluster( options ) {
     if (!options) options = {};
@@ -168,6 +164,12 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
     }
     child._pid = child.process.pid;
     this.emit('trace', "forked new worker #%d", child._pid);
+
+    // re-emit qcluster flow control messages in master as child events
+    // node-v0.10 does not emit child messages also as cluster.on message
+    child.on('message', function(msg) {
+        self._hoistMessageEvent(child, msg);
+    })
 
     child.once('exit', function() {
         self.emit('trace', "worker #%d exited", child._pid);
