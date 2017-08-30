@@ -25,6 +25,7 @@ function QCluster( options ) {
     this.stopTimeoutMs = options.stopTimeoutMs || 20000;
     this.startedIfListening = options.startedIfListening != null ? options.startedIfListening : true;
     this.disconnectIfStop = options.disconnectIfStop || false;
+    this.stoppedIfDisconnect = options.stoppedIfDisconnect != null ? options.stoppedIfDisconnect : true;
     this.signalsToRelay = options.signalsToRelay || [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP', 'SIGCONT' ];
     // note: it is an error in node to listen for (the uncatchable) SIGSTOP
     // note: SIGUSR1 starts the built-in debugger agent (listens on port 5858)
@@ -313,8 +314,7 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
 
     child.on('stopped', onChildStopped);
     child.on('exit', onChildStopped);
-    // TODO: should 'disconnect' from cluster master mean stopped?
-    // if (this.startedIfListening) child.on('disconnect', onChildStopped);
+    if (this.stoppedIfDisconnect) child.on('disconnect', onChildStopped);
     stopTimeoutTimer = setTimeout(onStopTimeout, this.stopTimeoutMs);
 
     function onChildStopped() {
@@ -413,7 +413,7 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
 
     /*
      * Ideally we would like full hanshaking, telling the worker to transition
-     * 'ready' -> 'start' -> 'started' and 'stop' -> 'stopped' -> 'quit'.
+     * 'ready' -> 'start' -> 'started' and 'stop' -> 'stopped'.
      * However, nodejs does not keep the socket open between workers, and
      * keeps sending requests to a worker until it closes all listen sockets.
      *
@@ -469,7 +469,6 @@ QCluster._hoistMessageEvent = function hoistMessageEvent( target, m ) {
         // messages on child side, ie process.on
         case 'start': target.emit('start'); break;
         case 'stop': target.emit('stop'); break;
-        case 'quit': target.emit('quit'); break;
         }
     }
 }

@@ -22,7 +22,7 @@ if (qcluster.isMaster) {
     })
     child.on('stopped', function() {
         console.log("parent: got stopped");
-        qcluster.sendTo(child, 'quit');
+        child.disconnect();
     })
     child.on('other', function() {
         console.log("parent: got other");
@@ -47,10 +47,6 @@ else {
         console.log("child: got stop");
         qcluster.sendToParent('stopped');
     })
-    process.once('quit', function() {
-        console.log("child: got quit");
-        qcluster._delayExit();
-    })
     process.once('other', function() {
         console.log("child: got other");
     })
@@ -58,6 +54,5 @@ else {
     // should not hoist invalid messages
     process.send({ n: 'other', m: 'other' });
 
-    // wait for 'quit'
-    qcluster._delayExit(999999);
+    // child waits for 'disconnect'
 }

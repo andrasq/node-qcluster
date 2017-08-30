@@ -5,6 +5,7 @@ var qcluster = require('../');
 var qm = qcluster.createCluster({
     startedIfListening: false,
     disconnectIfStop: false,
+    stoppedIfDisconnect: false,
 });
 
 qm.on('trace', function() {

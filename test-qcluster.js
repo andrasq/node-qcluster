@@ -774,7 +774,6 @@ module.exports = {
                 t.contains(output, 'parent: got stopped');
                 t.contains(output, 'child: got start');
                 t.contains(output, 'child: got stop');
-                t.contains(output, 'child: got quit');
                 t.contains(output, 'parent: child exited');
                 t.contains(output, 'parent: got message: status');
                 t.notContains(output, 'got other');
