@@ -3,8 +3,8 @@
 var util = require('util');
 var qcluster = require('../');
 var qm = qcluster.createCluster({
-    startedIfListening: true,
-    disconnectIfStop: true,
+    startedIfListening: false,
+    disconnectIfStop: false,
 });
 
 qm.on('trace', function() {
@@ -32,7 +32,9 @@ else {
     console.log("child #%d running", process.pid);
 
     // pretend listen on a socket
-    qcluster.sendToParent('listening');
+    qcluster.sendToParent('started');
 
-    // child waits for 'disconnect' then exits
+    process.on('stop', function() {
+        process.disconnect();
+    })
 }

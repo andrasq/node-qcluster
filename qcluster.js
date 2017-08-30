@@ -398,16 +398,16 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
         if (err) {
             // start timeout or unable to fork
             if (newChild) {
-                newChild.removeListener('listening', onListening);
-                newChild.removeListener('started', onListening);
+                newChild.removeListener('listening', onStarted);
+                newChild.removeListener('started', onStarted);
             }
             return callback(err, newChild);
         }
         else {
             // 'ready', 'started' or 'listening'
-            // tyipcally the child 
-console.log("AR: _doReplaceChild: new child #%d started", newChild._pid, newChild._isStarted);
-            if (!newChild._isStarted) qcluster.sendTo(newChild, 'start');
+            // tyipcally the worker sends 'ready', tell it to start
+            // workers that send 'listening' should ignore 'start'
+            qcluster.sendTo(newChild, 'start');
         }
     })
 
@@ -424,16 +424,16 @@ console.log("AR: _doReplaceChild: new child #%d started", newChild._pid, newChil
      */
 
     if (newChild && !newChild._isStarted) {
-        newChild.once('started', onListening);
-        newChild.once('listening', onListening);
+        newChild.once('started', onStarted);
+        if (this.startedIfListening) newChild.once('listening', onStarted);
     }
-    function onListening() {
+    function onStarted() {
         // new child is online and listening for requests, old child should stop
         // note: nodejs adds a worker to the pool as soon as it is 'listening'
         // on *any* port, and removes it only after 'disconnect' from *all* ports.
         //
-        newChild.removeListener('started', onListening);
-        newChild.removeListener('listening', onListening);
+        newChild.removeListener('started', onStarted);
+        newChild.removeListener('listening', onStarted);
 
         // immediately when replacement is ready and listening, stop the old worker
         // Once old worker closes all listened-on sockets, it will get no more requests,

@@ -733,7 +733,20 @@ module.exports = {
         },
 
         'should replace child listening': function(t) {
+            // replace a worker that signals with 'listening' and 'disconnect'
             this.runTest('replace-child-listening', function(err, output) {
+                t.contains(output, 'child1 pid');
+                t.contains(output, 'child2 pid');
+                t.contains(output, 'after replace, child1 connected = false');
+                t.contains(output, 'after replace, child2 connected = true');
+                t.contains(output, 'after stop, child2 connected = false');
+                t.done();
+            })
+        },
+
+        'should replace child started': function(t) {
+            // replace a worker that signals with 'start' and 'stop'
+            this.runTest('replace-child-started', function(err, output) {
                 t.contains(output, 'child1 pid');
                 t.contains(output, 'child2 pid');
                 t.contains(output, 'after replace, child1 connected = false');
