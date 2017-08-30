@@ -620,6 +620,19 @@ module.exports = {
             })
         },
 
+        'should stop child disconnect': function(t) {
+            this.runTest('stop-child-disconnect', function(err, output) {
+                t.contains(output, 'child running');
+                t.contains(output, 'child got start');
+                t.contains(output, 'child got stop');
+                t.contains(output, 'child disconnected');
+                t.notContains(output, 'child sent ready');
+                t.notContains(output, 'child sent started');
+                t.notContains(output, 'child sent stopped');
+                t.done();
+            })
+        },
+
         'should stop child timeout': function(t) {
             this.runTest('stop-child-timeout', function(err, output) {
                 t.contains(output, 'child running');

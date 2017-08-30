@@ -84,7 +84,7 @@ Options:
 - disconnectIfStop - when stopping a child, whether to also disconnect() after sending 'stop'.
   Default false.
 - stoppedIfDisconnect - when waiting for a child to stop, whether to treat a 'disconnect'
-  as meaning 'stopped'.  Default false.
+  as meaning 'stopped'.  Default true.
 - signalsToRelay - which signals the master should catch and relay to the workers.  Default is
   [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'SIGTSTP', 'SIGCONT' ].
   SIGTSTP handling is special; see Signal Handling below.
