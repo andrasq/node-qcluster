@@ -16,37 +16,43 @@ Sample parent:
     const qcluster = require('qcluster');
     const qm = qcluster.createCluster();
 
-    qm.forkChild(function(err, child) {
-        child.on('message', function(message) {
-            if (qcluster.isQMessage(message)) {
-                console.log("child #%d sent message", message.pid, message);
-            }
-        })
+    if (qcluster.isMaster) {
+        qm.forkChild(function(err, child) {
+            child.on('message', function(message) {
+                if (qcluster.isQMessage(message)) {
+                    console.log("child #%d sent", message.pid, message);
+                }
+            })
 
-        qm.replaceChild(child1, function(err, child2) {
-            qcluster.sendTo(child2, 'quit');
+            qcluster.sendTo(child, 'start');
+            child.once('started', function() {
+                // child serving requests
+            })
+
+            qm.replaceChild(child1, function(err, child2) {
+                // child stopped, now child2 serving requests
+            })
         })
-    })
+    }
 
 Sample child:
 
-    createApp(function(err, app) {
-        qcluster.sendToParent('ready');
+    if (!qcluster.isMaster) {
+        createApp(function(err, app) {
+            qcluster.sendToParent('ready');
 
-        process.on('start', function() {
-            app.listen();
-            qcluster.sendToParent('started');
-        })
+            process.on('start', function() {
+                app.listen();
+                qcluster.sendToParent('started');
+            })
 
-        process.on('stop', function() {
-            app.close();
-            qcluster.sendToParent('stopped');
+            process.on('stop', function() {
+                app.close();
+                qcluster.sendToParent('stopped');
+                process.disconnect();
+            })
         })
-
-        process.on('quit', function() {
-            process.disconnect();
-        })
-    })
+    }
 
 
 ## Worker Start Protocol
@@ -68,6 +74,19 @@ Stopping:
 - 'stopped' - response sent by child to confirm that it is not longer accepting
   requests.  The child may also exit, that also confirms that it stopped.
 - 'exit' - sent by nodejs to parent after child process exited
+
+QCluster also supports the minimal nodejs `cluster` startup protocol.
+
+Starting:
+
+- 'listening' - sent by child as soon at it listens for requests over the network.
+  This is built into the `net` module when running in `cluster` mode.
+
+Stopping:
+
+- 'disconnect' - notification received that the other side has disconnected, closed
+  the IPC channel, and that the child will not be receiving more requests.  Once
+  disconnected, the child can no longer send messages to the master.
 
 
 ## API
