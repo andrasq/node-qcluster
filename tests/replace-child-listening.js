@@ -19,11 +19,11 @@ if (qcluster.isMaster) {
             console.log("child2 pid %d", child2._pid);
 
             // after replace, expect child2 to be connected and child1 to not
-            console.log("after replace, child1 connected =", child1.isConnected());
-            console.log("after replace, child2 connected =", child2.isConnected());
+            console.log("after replace, child1 connected =", !child1.suicide);
+            console.log("after replace, child2 connected =", !child2.suicide);
 
             qm.stopChild(child2, function(){
-                console.log("after stop, child2 connected =", child2.isConnected());
+                console.log("after stop, child2 connected =", !child2.suicide);
             })
         })
     })
