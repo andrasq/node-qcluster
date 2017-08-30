@@ -10,6 +10,9 @@ if (qcluster.isMaster) {
             console.log("child started, pid %d", child.process.pid)
             qm.killChild(child);
         })
+        child.once('stopped', function() {
+            console.log("child sent 'stopped'")
+        })
         qm.once('exit', function(child) {
             console.log("child exited, pid %d", child._pid);
             console.log("quicktest done, children.length: %d.", qm.children.length);
@@ -18,14 +21,17 @@ if (qcluster.isMaster) {
 }
 else {
     console.log("child running, pid %d", process.pid);
-    qcluster.sendToParent('started');
     process.on('SIGTERM', function() {
+        qcluster.sendToParent('stopped');
         console.log("child killed, pid %d", process.pid);
-        process.disconnect();
-        // note: using disconnect() does not ensure that the "child killed" is written to stdout.
-        // delay the exit explicitly to work around this.
-        qcluster._delayExit(10);
+        setTimeout(function() {
+            process.disconnect();
+            // there is a race condition between the child and the parent
+            // where sometimes the console.log form the sig handler is lost
+            // qcluster._delayExit(10);
+        }, 100);
     })
+    qcluster.sendToParent('started');
 }
 
 // nb: 7 ms to run the quicktest??

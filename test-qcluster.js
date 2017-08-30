@@ -579,6 +579,7 @@ module.exports = {
             this.runTest('quicktest', function(err, output) {
                 t.contains(output, 'child started');
                 t.contains(output, 'child running');
+                t.contains(output, 'child sent \'stopped\'');
                 t.contains(output, 'child killed');
                 t.contains(output, 'child exited');
                 t.contains(output, 'quicktest done, children.length: 0.');
