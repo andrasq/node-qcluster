@@ -12,6 +12,7 @@ function runTest() {
             qm.children.push({ _pid: 1 });
 
             // the cluster master relays signals, is not killed by them
+            process.kill(process.pid, 'SIGUSR2');
             process.kill(process.pid, 'SIGINT');
 
             // verify that signal send after child has started is received by child
@@ -27,6 +28,9 @@ function runTest() {
         // use a spurious (out of sequence) 'ready' to strobe parent test
         qcluster.sendToParent('ready');
         console.log("child running, pid %d", process.pid);
+        process.once('SIGUSR2', function() {
+            console.log("child SIGUSR2")
+        })
         process.once('SIGINT', function() {
             console.log("child SIGINT");
             qcluster._delayExit();

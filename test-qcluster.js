@@ -575,6 +575,14 @@ module.exports = {
             done();
         },
 
+        'should ismaster': function(t) {
+            this.runTest('ismaster', function(err, output) {
+                t.contains(output, "isMaster: true, isWorker: false");
+                t.contains(output, "isMaster: false, isWorker: true");
+                t.done();
+            })
+        },
+
         'should quicktest': function(t) {
             this.runTest('quicktest', function(err, output) {
                 t.contains(output, 'child started');
@@ -773,6 +781,7 @@ module.exports = {
         'should relay signals': function(t) {
             this.runTest('relay-signals', function(err, output) {
                 t.contains(output, 'child running');
+                t.contains(output, 'child SIGUSR2');
                 t.contains(output, 'child SIGINT');
                 t.contains(output, 'child exists? false');
                 t.done();
