@@ -532,29 +532,27 @@ qcluster = {
             iterate([
                 function(cb) {
                     if (options.omitSignalHandler) return cb();
-                    qm.handleSignals(function(err) { cb(err) });
+                    qm.handleSignals(cb);
                 },
                 function(cb) {
-                    if (options.clusterSize > 0) {
-                        var forkCount = 0;
-                        var forkErrors = [];
+                    if (!(options.clusterSize > 0)) return cb();
+                    var forkCount = 0;
+                    var forkErrors = [];
 
-                        // start the workers concurrently
-                        for (var i=0; i<options.clusterSize; i++) {
-                            qm.forkChild(function(err, child) {
-                                forkCount += 1;
-                                if (err) forkErrors.push(err);
+                    // start the workers concurrently
+                    for (var i=0; i<options.clusterSize; i++) {
+                        qm.forkChild(function(err, child) {
+                            forkCount += 1;
+                            if (err) forkErrors.push(err);
+                            if (forkCount == options.clusterSize) {
+                                if (forkErrors.length) return cb(forkErrors[0], forkErrors);
+                                for (var i=0; i<qm.children.length; i++) qcluster.sendTo(qm.children[i], 'start');
+                                // TODO: returns before workers have started listening
                                 // TODO: time out 'started' response
-                                if (forkCount == options.clusterSize) {
-                                    if (forkErrors.length) return cb(forkErrors[0]);
-                                    for (var i=0; i<qm.children.length; i++) qcluster.sendTo(qm.children[i], 'start');
-                                    // TODO: returns before workers have started listening
-                                    return cb();
-                                }
-                            })
-                        }
+                                return cb();
+                            }
+                        })
                     }
-                    else cb();
                 },
             ],
             function(err) {
