@@ -6,14 +6,21 @@ var qm = qcluster.createCluster({
     stoppedIfDisconnect: true,
 });
 
+qm.on('trace', console.log);
+
 if (qcluster.isMaster) {
     var child = qm.forkChild(function(err, child) {
         console.log("child #%d started", child._pid);
-
         qcluster.sendTo(child, 'start');
 
-        qm.stopChild(child, function(err) {
+        qm.replaceChild(child, function(err, child2) {
             console.log("child #%d stopped", child._pid);
+            console.log("child2 #%d started", child2._pid);
+
+            qm.stopChild(child2, function(err) {
+                console.log("child2 stopped");
+                //child2.disconnect();
+            })
         })
     });
 
