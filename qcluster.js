@@ -178,15 +178,15 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
         self.emit('exit', child);
     })
 
-    child.once('ready', function() {
+    child.on('ready', function() {
         self.emit('trace', "new worker #%d 'ready'", child._pid)
     })
-    child.once('started', function() {
-        self._isStarted = true;
+    child.on('started', function() {
+        child._isStarted = true;
         self.emit('trace', "new worker #%d 'started'", child._pid);
     })
-    child.once('listening', function() {
-        self._isStarted = true;
+    child.on('listening', function() {
+        child._isStarted = true;
         self.emit('trace', "new worker #%d 'listening'", child._pid);
     })
     child.once('disconnect', function() {
@@ -352,6 +352,7 @@ QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
     if (!this._replacing) {
         var self = this;
         this._replacing = true;
+
         setImmediate(function doReplace() {
             // replace one child at a time
             var info = self._replaceQueue.shift();
@@ -407,7 +408,8 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
             // 'ready', 'started' or 'listening'
             // tyipcally the worker sends 'ready', tell it to start
             // workers that send 'listening' should ignore 'start'
-            qcluster.sendTo(newChild, 'start');
+            if (newChild._isStarted) onStarted();
+            else qcluster.sendTo(newChild, 'start');
         }
     })
 
@@ -547,6 +549,7 @@ qcluster = {
                             if (forkCount == options.clusterSize) {
                                 if (forkErrors.length) return cb(forkErrors[0], forkErrors);
                                 for (var i=0; i<qm.children.length; i++) qcluster.sendTo(qm.children[i], 'start');
+                                // TODO: only send 'start' if ! children[i]._isStarted
                                 // TODO: returns before workers have started listening
                                 // TODO: time out 'started' response
                                 return cb();
