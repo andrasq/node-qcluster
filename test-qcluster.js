@@ -602,6 +602,16 @@ module.exports = {
             })
         },
 
+        'should fork many': function(t) {
+            this.runTest('fork-many', function(err, output) {
+                t.contains(output, 'cluster size = 3');
+                t.contains(output, 'child 1 exists: true');
+                t.contains(output, 'child 2 exists: true');
+                t.contains(output, 'child 3 exists: true');
+                t.done();
+            })
+        },
+
         'should start child exit': function(t) {
             this.runTest('start-child-exit', function(err, output) {
                 t.contains(output, 'child exited, code 123');
