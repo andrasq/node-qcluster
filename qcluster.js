@@ -288,6 +288,8 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     var returned = false;
     function callbackOnce(err, child) {
         if (!returned) {
+            returned = true;
+console.log("AR: stopChild RET", returned, Math.random() * 0x100000, new Date().toISOString());
             // delay removing the listeners to be able to test the call-once mutexing
             // even that leaves a race that sometimes gets only one message through
             setImmediate(function() {
@@ -295,7 +297,6 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
                 child.removeListener('exit', onChildStopped);
                 child.removeListener('disconnect', onChildStopped);
             })
-            returned = true;
             clearTimeout(stopTimeoutTimer);
             callback(err, child);
         }
@@ -312,9 +313,9 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     //
     if (self.disconnectIfStop) child.disconnect();
 
-    child.on('stopped', onChildStopped);
-    child.on('exit', onChildStopped);
-    if (this.stoppedIfDisconnect) child.on('disconnect', onChildStopped);
+    child.once('stopped', onChildStopped);
+    child.once('exit', onChildStopped);
+    if (this.stoppedIfDisconnect) child.once('disconnect', onChildStopped);
     stopTimeoutTimer = setTimeout(onStopTimeout, this.stopTimeoutMs);
 
     function onChildStopped() {
