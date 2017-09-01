@@ -126,7 +126,7 @@ QCluster.prototype._installRelays = function _installRelays( ) {
     var self = this;
     for (var i=0; i<self.signalsToRelay.length; i++) {
         (function(sig) {
-            process.on(sig, function(){
+            process.on(sig, function() {
                 self.emit('trace', "relaying signal %s", sig);
                 if (self._forking) self._signalsQueued.push(sig);
                 else self._relaySignalsToChildren([sig], self.children);
@@ -289,7 +289,6 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     function callbackOnce(err, child) {
         if (!returned) {
             returned = true;
-console.log("AR: stopChild RET", returned, Math.random() * 0x100000, new Date().toISOString());
             // delay removing the listeners to be able to test the call-once mutexing
             // even that leaves a race that sometimes gets only one message through
             setImmediate(function() {
@@ -312,6 +311,7 @@ console.log("AR: stopChild RET", returned, Math.random() * 0x100000, new Date().
     // continue to receive messages from the old worker until it exits.
     //
     if (self.disconnectIfStop) child.disconnect();
+    // nb: node throws if already disconnected
 
     child.once('stopped', onChildStopped);
     child.once('exit', onChildStopped);
