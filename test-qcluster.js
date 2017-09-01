@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2017 Andras Radics
+ * Licensed under the Apache License, Version 2.0
+ */
+
 'use strict';
 
 var assert = require('assert');
@@ -568,7 +573,7 @@ module.exports = {
              */
             this.runTest = function runTest( which, callback ) {
                 var cmdline = process.argv[0] + ' ' + __dirname + '/tests/' + which;
-                child_process.exec(cmdline, function(err, stdout, stderr) {
+                child_process.exec(cmdline, { maxBuffer: 10000000 }, function(err, stdout, stderr) {
                     callback(err, stdout + stderr);
                 })
             }
@@ -812,6 +817,18 @@ module.exports = {
                 t.done();
             })
         },
+
+        'test drop calls': function(t) {
+            this.runTest('drop-calls', function(err, output) {
+                t.contains(output, 'ncalls == ndone ? true');
+                t.contains(output, 'child1 calls > 100 ? true');
+                t.contains(output, 'child2 calls > 100 ? true');
+if (countSubstr(output, 'PID mismatch') > 2) console.log("AR: output", output);
+                t.ok(countSubstr(output, 'PID mismatch') <= 10);
+                t.notContains(output, 'ERROR');
+                t.done();
+            })
+        },
     },
 }
 
@@ -825,4 +842,13 @@ function mockChild( pid ) {
         send: noop,
         removeListener: noop,
     }
+}
+
+function countSubstr( str, substr ) {
+    var ix = 0, count = 0;
+    while ((ix = str.indexOf(substr, ix)) >= 0) {
+        count += 1;
+        ix = ix + 1;
+    }
+    return count;
 }

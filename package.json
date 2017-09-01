@@ -13,7 +13,7 @@
   },
   "scripts": {
     "test": "qnit test-*",
-    "coverage": "nyc --include qcluster.js --reporter text --reporter lcov qnit test-*",
+    "coverage": "nyc --include qcluster.js --reporter text --reporter lcov qnit --timeout 10000 test-*",
     "clean": "rm -rf .nyc_output coverage"
   }
 }
