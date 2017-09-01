@@ -85,8 +85,8 @@ console.log("P got", String(chunk));
                         console.log("parent ncalls = %d", ncalls);
                         console.log("parent ndone = %d", ndone);
                         console.log("ncalls == ndone ?", ncalls == ndone);                              // all calls were replied to
-                        console.log("child1 calls > 100 ? %s (%d)", child1Calls > 100, child1Calls);    // child1 ran calls
-                        console.log("child2 calls > 100 ? %s (%d)", child1Calls > 100, child2Calls);    // child2 ran calls
+                        console.log("child1 calls > 10 ? %s (%d)", child1Calls > 10, child1Calls);      // child1 ran calls
+                        console.log("child2 calls > 10 ? %s (%d)", child1Calls > 10, child2Calls);      // child2 ran calls
                         qm.stopChild(child2, function() {
                             // wait for the workers to exit, then exit ourselves
                             // workers exit once they have finished sending the replies

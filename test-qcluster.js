@@ -348,7 +348,7 @@ module.exports = {
             var qm = qcluster.createCluster();
             var child = mockChild();
             var spy = t.spy(child, 'once');
-            qm.startChild(child);
+            qm.startChild(child, function(){});
             t.equal(spy.callCount, 4);
             t.equal(spy.getAllArguments()[0][0], 'ready');
             t.equal(spy.getAllArguments()[1][0], 'started');
@@ -379,7 +379,7 @@ module.exports = {
             var qm = qcluster.createCluster({ startedIfListening: false });
             var child = mockChild();
             var spy = t.spy(child, 'once');
-            qm.startChild(child);
+            qm.startChild(child, function(){});
             t.equal(spy.callCount, 3);
             t.equal(spy.getAllArguments()[0][0], 'ready');
             t.equal(spy.getAllArguments()[1][0], 'started');
@@ -821,8 +821,8 @@ module.exports = {
         'test drop calls': function(t) {
             this.runTest('drop-calls', function(err, output) {
                 t.contains(output, 'ncalls == ndone ? true');
-                t.contains(output, 'child1 calls > 100 ? true');
-                t.contains(output, 'child2 calls > 100 ? true');
+                t.contains(output, 'child1 calls > 10 ? true');
+                t.contains(output, 'child2 calls > 10 ? true');
 if (countSubstr(output, 'PID mismatch') > 2) console.log("AR: output", output);
                 t.ok(countSubstr(output, 'PID mismatch') <= 10);
                 t.notContains(output, 'ERROR');
