@@ -22,8 +22,8 @@ if (qcluster.isMaster) {
 
     qm.forkChild(function(err, child) {
         var ncalls = 0, ndone = 0, doStop = false;
-        var activePid = child._pid;
         var childCalls = {};
+        var callPids = [];
 
         // make lots of calls to the service until told to stop
         setImmediate(function pingLoop() {
@@ -52,8 +52,8 @@ console.log("P sending", ncalls);
                 // warn if the two workers overlapped
 console.log("P got", String(chunk));
                 var pid = parseInt(chunk.toString());
+                callPids.push(chunk.toString());
                 childCalls[pid] = childCalls[pid] ? childCalls[pid] + 1 : 1;
-                if (pid != activePid) console.log("PID mismatch");
                 ndone += 1;
             })
 
@@ -70,7 +70,6 @@ console.log("P got", String(chunk));
         // once a bunch of calls have been made, swap workers
         setTimeout(function() {
             qm.replaceChild(qm.children[0], function(err, child2) {
-                activePid = child2._pid;
 
                 // after another bunch of calls, stop making calls
                 setTimeout(function() {

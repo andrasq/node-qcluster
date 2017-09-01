@@ -823,8 +823,6 @@ module.exports = {
                 t.contains(output, 'ncalls == ndone ? true');
                 t.contains(output, 'child1 calls > 10 ? true');
                 t.contains(output, 'child2 calls > 10 ? true');
-if (countSubstr(output, 'PID mismatch') > 2) console.log("AR: output", output);
-                t.ok(countSubstr(output, 'PID mismatch') <= 10);
                 t.notContains(output, 'ERROR');
                 t.done();
             })
