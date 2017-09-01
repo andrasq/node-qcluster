@@ -1,4 +1,11 @@
-// qcluster:  (see also node-docs/robust-cluster.md)
+/**
+ * qcluster -- easier nodejs cluster management
+ * (see also node-docs/robust-cluster.md)
+ *
+ * Copyright (C) 2017 Andras Radics
+ * Licensed under the Apache License, Version 2.0
+ */
+
 
 'use strict';
 
@@ -409,8 +416,8 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
             // 'ready', 'started' or 'listening'
             // tyipcally the worker sends 'ready', tell it to start
             // workers that send 'listening' should ignore 'start'
-            if (newChild._isStarted) onStarted();
-            else qcluster.sendTo(newChild, 'start');
+            // if the child did not already start ('started' or 'listening'), tell it to
+            if (!newChild._isStarted) qcluster.sendTo(newChild, 'start');
         }
     })
 
@@ -426,10 +433,15 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
      * should be at most a few milliseconds.
      */
 
-    if (newChild && !newChild._isStarted) {
+    if (newChild) {
+        // wait for the new child to indicate that it started
+        // TODO: newChild.on('started')
+        // the newly forked child will not have signaled yet
         newChild.once('started', onStarted);
         if (this.startedIfListening) newChild.once('listening', onStarted);
     }
+
+
     function onStarted() {
         // new child is online and listening for requests, old child should stop
         // note: nodejs adds a worker to the pool as soon as it is 'listening'
