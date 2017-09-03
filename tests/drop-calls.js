@@ -34,16 +34,10 @@ console.log("P sending", ncalls);
             socket.end();
             ncalls += 1;
 
-            // FIXME: without disconnectIfStop, one request is lost (not received by child)
-            // FIXME: The instrumented trace shows the cut-over happening cleanly, but
-            // FIXME: after cut-over, the *second* call is not received by the child.
-            // FIXME: Round-robin sends the second call after cut-over to the old child,
-            // FIXME: which does not receive it, but nodejs does not notice this.
-
             // NOTE: sometimes nodejs sends a call to the newly forked process before its
             // 'listening' event has arrived; it eventually receives and runs the call.
 
-            // NOTE: without disconnectIfStop nodejs sends a call to the worker that has
+            // NOTE: without disconnectIfStop nodejs can send a call to a worker that has
             // already closed and disconnected but whose 'disconnect' message has not arrived.
             // This call is lost.  The workaround is for the child disconnect later, first
             // just close its server to notify the parent to stop sending it calls.
@@ -125,14 +119,13 @@ console.log("C %d got %d", process.pid, callValue);
         server.close();
         qcluster.sendToParent('stopped');
         console.log("stop: child ncalls %d (#%d, %d - %d)", ncalls, process.pid, minCall, maxCall);
-//        process.disconnect();
+        // do not disconnect, to be sure parent knows to not send us any more requests.  let parent close child.
     })
 
     process.on('disconnect', function() {
         server.close();
         qcluster.sendToParent('stopped');
         console.log("disconnect: child ncalls %d (#%d, %d - %d)", ncalls, process.pid, minCall, maxCall);
-//        process.disconnect();
     })
 
     process.on('uncaughtException', function(err) {
