@@ -24,6 +24,7 @@ if (qcluster.isMaster) {
         var ncalls = 0, ndone = 0, doStop = false;
         var childCalls = {};
         var callPids = [];
+        var receivedCalls = [];
 
         // make lots of calls to the service until told to stop
         setImmediate(function pingLoop() {
@@ -43,10 +44,13 @@ console.log("P sending", ncalls);
             // just close its server to notify the parent to stop sending it calls.
 
             socket.on('data', function(chunk) {
-                // warn if the two workers overlapped
-console.log("P got", String(chunk));
-                var pid = parseInt(chunk.toString());
-                callPids.push(chunk.toString());
+                // the worker returns its pid followed by the sent call sequence number
+                chunk = chunk.toString();
+console.log("P got", chunk);
+                var pid = parseInt(chunk);
+                var callNum = parseInt(chunk.split(' ')[1]);
+                callPids.push(chunk);
+                receivedCalls[callNum] = chunk;
                 childCalls[pid] = childCalls[pid] ? childCalls[pid] + 1 : 1;
                 ndone += 1;
             })
@@ -75,6 +79,7 @@ console.log("P got", String(chunk));
                     setTimeout(function() {
                         var child1Calls = childCalls[child._pid];
                         var child2Calls = childCalls[child2._pid];
+                        for (var i=0; i<ncalls; i++) if (!receivedCalls[i]) console.log("missing call %d", i);
                         console.log("parent ncalls = %d", ncalls);
                         console.log("parent ndone = %d", ndone);
                         console.log("ncalls == ndone ?", ncalls == ndone);                              // all calls were replied to
@@ -86,7 +91,7 @@ console.log("P got", String(chunk));
                             // TODO: should not have to forcibly exit the process, find why
                             qcluster._delayExit(10);
                         })
-                    }, 100)
+                    }, 250)
                 }, 5)
             })
         }, 10);
