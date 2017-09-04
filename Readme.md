@@ -18,18 +18,32 @@ Sample parent:
 
     if (qcluster.isMaster) {
         qm.forkChild(function(err, child) {
+            // child forked, ready to serve requests
+
             child.on('message', function(message) {
                 if (qcluster.isQMessage(message)) {
                     console.log("child #%d sent", message.pid, message);
                 }
             })
 
+            // tell child to start serving requests
             qcluster.sendTo(child, 'start');
             child.once('started', function() {
                 // child serving requests
             })
 
-            qm.replaceChild(child1, function(err, child2) {
+            // ...
+
+            // tell child to stop serving requests
+            qcluster.sendTo(child, 'stop');
+
+            child.once('stopped', function() {
+                // child stopped running requests, disconnect to let it exit
+                child.disconnect();
+            })
+
+            // alternately, replace a running child
+            qm.replaceChild(child, function(err, child2) {
                 // child stopped, now child2 serving requests
             })
         })
@@ -49,7 +63,6 @@ Sample child:
             process.on('stop', function() {
                 app.close();
                 qcluster.sendToParent('stopped');
-                process.disconnect();
             })
         })
     }
