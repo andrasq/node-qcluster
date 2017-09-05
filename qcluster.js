@@ -226,18 +226,13 @@ QCluster.prototype.startChild = function startChild( child, options, callback ) 
     }
     options = options || {};
 
-    var returned = false;
-    function callbackOnce( err, child ) {
-        if (!returned) {
-            returned = true;
-            clearTimeout(startTimeoutTimer);
-            child.removeListener('ready', onChildStarted);
-            child.removeListener('started', onChildStarted);
-            child.removeListener('listening', onChildStarted);
-            child.removeListener('exit', onChildExit);
-            callback(err, child);
-        }
-    }
+    var callbackOnce = callOnce(callback, function() {
+        clearTimeout(startTimeoutTimer);
+        child.removeListener('ready', onChildStarted);
+        child.removeListener('started', onChildStarted);
+        child.removeListener('listening', onChildStarted);
+        child.removeListener('exit', onChildExit);
+    })
 
     startTimeoutTimer = setTimeout(onChildStartTimeout, options.startTimeoutMs || this.startTimeoutMs);
     // wait for the child to be at least 'ready' to listen for requests,
@@ -292,21 +287,16 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     var self = this;
     var stopTimeoutTimer;
 
-    var returned = false;
-    function callbackOnce(err, child) {
-        if (!returned) {
-            returned = true;
-            // delay removing the listeners to be able to test the call-once mutexing
-            // even that leaves a race that sometimes gets only one message through
-            setImmediate(function() {
-                child.removeListener('stopped', onChildStopped);
-                child.removeListener('exit', onChildStopped);
-                child.removeListener('disconnect', onChildStopped);
-            })
-            clearTimeout(stopTimeoutTimer);
-            callback(err, child);
-        }
-    }
+    var callbackOnce = callOnce(callback, function() {
+        // delay removing the listeners to be able to test the call-once mutexing
+        // even that leaves a race that sometimes gets only one message through
+        setImmediate(function() {
+            child.removeListener('stopped', onChildStopped);
+            child.removeListener('exit', onChildStopped);
+            child.removeListener('disconnect', onChildStopped);
+        })
+        clearTimeout(stopTimeoutTimer);
+    })
 
     qcluster.sendTo(child, 'stop');
 
@@ -513,6 +503,18 @@ QCluster.prototype._removePid = function _removePid( pid ) {
     this.children.length = i;
 }
 
+
+// if not yet called, wrap up and call func
+function callOnce( func, wrapup ) {
+    var called = false;
+    return function(err, ret) {
+        if (!called) {
+            called = true;
+            wrapup();
+            func(err, ret);
+        }
+    }
+}
 
 function repeatUntil( action, cb ) {
     (function loop() {
