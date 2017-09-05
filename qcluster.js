@@ -136,6 +136,19 @@ QCluster.prototype._fetchQueuedSignals = function _fetchQueuedSignals( ) {
 }
 
 /*
+ * fork a new child process and wait for it to start serving requests
+ */
+/**
+QCluster.prototype.createChild = function createChild( callback ) {
+    var self = this;
+    self.forkChild(function(err, child) {
+        if (err) return callback(err);
+        self.startChild(child, callback);
+    })
+}
+**/
+
+/*
  * fork a new child process and wait for it to finish initializing
  */
 QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
