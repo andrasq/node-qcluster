@@ -107,24 +107,6 @@ QCluster.prototype.handleSignals = function handleSignals( callback ) {
     }
     // TODO: should mutex both _installing and _installed, in case of overlap
     self._signalHandlersInstalled = true;
-
-/**
-    // pre-signal self with relayed signals to make Jenkins unit tests work
-    // TODO: was needed for node-v0.10, but maybe no longer
-    var expectCount = signals.length;
-    for (var i=0; i<signals.length; i++) {
-        var signal = signals[i];
-        process.once(signal, function() {
-            // note: signal is delivered on next tick in node v4 and up
-            expectCount -= 1;
-            if (!expectCount && callback) {
-                self._installRelays();
-                callback(null, self);
-            }
-        });
-        process.kill(process.pid, signal);
-    }
-/**/
     self._installRelays();
     callback(null, self);
 }
