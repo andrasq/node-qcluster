@@ -276,6 +276,10 @@ The message format is
   just hangs).  Stopping one worker before its replacement is listening opens a race
   condition window during which requests would not be served.
 
+- If a worker disconnects before it has finished processing all requests, some calls
+  could be lost.  To shut down cleanly, it should close its listened-on socket to stop
+  receiving more calls, finish processing all pending requests, and only then exit.
+
 
 ## Todo
 

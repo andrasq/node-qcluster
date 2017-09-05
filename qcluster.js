@@ -510,8 +510,8 @@ function callOnce( func, wrapup ) {
     return function(err, ret) {
         if (!called) {
             called = true;
-            wrapup();
-            func(err, ret);
+            if (wrapup) wrapup();
+            if (func) func(err, ret);
         }
     }
 }
@@ -594,6 +594,7 @@ qcluster = {
     },
     repeatUntil: repeatUntil,
     iterate: iterate,
+    callOnce: callOnce,
 }
 
 // export class methods as instance methods as well, else too confusing

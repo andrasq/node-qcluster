@@ -599,6 +599,63 @@ module.exports = {
         },
     },
 
+    'helpers': {
+        'callOnce': {
+            'should call only once': function(t) {
+                var called = 0, fn = qcluster.callOnce(function() { called += 1 }, function(){});
+                fn();
+                fn();
+                t.equal(called, 1);
+                t.done();
+            },
+
+            'wrapup should be optional': function(t) {
+                var fn = qcluster.callOnce(function() { t.done() });
+                fn();
+            },
+
+            'callabck should be optional': function(t) {
+                var fn = qcluster.callOnce(null, function() { t.done() });
+                fn();
+            },
+
+            'should pass err, ret to callback': function(t) {
+                var args, fn = qcluster.callOnce(function(err, ret) { args = [err, ret] });
+                fn(1, 2);
+                t.deepEqual(args, [1, 2]);
+                t.done();
+            },
+        },
+
+        'iterate': {
+            'should call each function': function(t) {
+                var called1, called2;
+                qcluster.iterate([
+                    function(cb) { called1 = true; cb() },
+                    function(cb) { called2 = true; cb() },
+                ], function(err) {
+                    t.equal(called1, true);
+                    t.equal(called2, true);
+                    t.done();
+                })
+            },
+
+            'should stop on error': function(t) {
+                var called1, called2;
+                qcluster.iterate([
+                    function(cb) { called1 = true; cb(new Error("test error")) },
+                    function(cb) { called2 = true; cb() },
+                ], function(err) {
+                    t.equal(called1, true);
+                    t.equal(called2, undefined);
+                    t.ok(err);
+                    t.equal(err.message, 'test error');
+                    t.done();
+                })
+            },
+        },
+    },
+
     'tests': {
         setUp: function(done) {
             /*
