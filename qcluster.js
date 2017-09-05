@@ -216,15 +216,12 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
 /*
  * wait for a newly forked child process to finish initializing
  */
-QCluster.prototype.startChild = function startChild( child, options, callback ) {
+QCluster.prototype.startChild = function startChild( child, callback ) {
     var self = this;
     var startTimeoutTimer;
 
-    if (!callback && typeof options === 'function') {
-        callback = options;
-        options = {};
-    }
-    options = options || {};
+    if (!child) throw new Error("no child");
+    if (!callback) throw new Error("callback required");
 
     var callbackOnce = callOnce(callback, function() {
         clearTimeout(startTimeoutTimer);
@@ -234,7 +231,7 @@ QCluster.prototype.startChild = function startChild( child, options, callback ) 
         child.removeListener('exit', onChildExit);
     })
 
-    startTimeoutTimer = setTimeout(onChildStartTimeout, options.startTimeoutMs || this.startTimeoutMs);
+    startTimeoutTimer = setTimeout(onChildStartTimeout, this.startTimeoutMs);
     // wait for the child to be at least 'ready' to listen for requests,
     // or be actually running and serving requests if 'started' or 'listening'
     child.once('ready', onChildStarted);
@@ -286,6 +283,9 @@ QCluster.prototype.existsProcess = function existsProcess( pid ) {
 QCluster.prototype.stopChild = function stopChild( child, callback ) {
     var self = this;
     var stopTimeoutTimer;
+
+    if (!child) throw new Error("no child");
+    if (!callback) throw new Error("callback required");
 
     var callbackOnce = callOnce(callback, function() {
         // delay removing the listeners to be able to test the call-once mutexing

@@ -344,6 +344,22 @@ module.exports = {
     },
 
     'startChild': {
+        'should require child': function(t) {
+            var qm = qcluster.createCluster();
+            t.throws(function() {
+                qm.startChild();
+            }, 'no child')
+            t.done();
+        },
+
+        'should require callback': function(t) {
+            var qm = qcluster.createCluster();
+            t.throws(function() {
+                qm.startChild(mockChild());
+            }, 'callback required');
+            t.done();
+        },
+
         'should not require options': function(t) {
             var qm = qcluster.createCluster();
             var child = mockChild();
@@ -384,6 +400,24 @@ module.exports = {
             t.equal(spy.getAllArguments()[0][0], 'ready');
             t.equal(spy.getAllArguments()[1][0], 'started');
             t.equal(spy.getAllArguments()[2][0], 'exit');
+            t.done();
+        },
+    },
+
+    'stopChild': {
+        'should require child': function(t) {
+            var qm = qcluster.createCluster();
+            t.throws(function() {
+                qm.stopChild();
+            }, 'no child')
+            t.done();
+        },
+
+        'should require callback': function(t) {
+            var qm = qcluster.createCluster();
+            t.throws(function() {
+                qm.stopChild(mockChild());
+            }, 'callback required');
             t.done();
         },
     },
