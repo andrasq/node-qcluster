@@ -175,7 +175,7 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
         self.emit('trace', "new worker #%d 'started'", child._pid);
     })
     child.on('listening', function() {
-        child._isStarted = true;
+        if (self.startedIfListening) child._isStarted = true;
         self.emit('trace', "new worker #%d 'listening'", child._pid);
     })
     child.once('disconnect', function() {
@@ -196,7 +196,7 @@ QCluster.prototype.forkChild = function forkChild( optionalCallback ) {
 }
 
 /*
- * wait for a newly forked child process to finish initializing
+ * wait for a newly forked child process to start serving requests
  */
 QCluster.prototype.startChild = function startChild( child, callback ) {
     var self = this;
@@ -207,22 +207,29 @@ QCluster.prototype.startChild = function startChild( child, callback ) {
 
     var callbackOnce = callOnce(callback, function() {
         clearTimeout(startTimeoutTimer);
-        child.removeListener('ready', onChildStarted);
+        child.removeListener('ready', onChildReady);
         child.removeListener('started', onChildStarted);
         child.removeListener('listening', onChildStarted);
         child.removeListener('exit', onChildExit);
     })
 
+    if (child._isStarted) return callbackOnce(null, child);
+
     startTimeoutTimer = setTimeout(onChildStartTimeout, this.startTimeoutMs);
     // wait for the child to be at least 'ready' to listen for requests,
     // or be actually running and serving requests if 'started' or 'listening'
-    child.once('ready', onChildStarted);
+    child.once('ready', onChildReady);
     child.once('started', onChildStarted);
     if (this.startedIfListening) child.once('listening', onChildStarted);
 
     child.once('exit', onChildExit);
 
-    function onChildStarted() {
+    function onChildReady( ) {
+        qcluster.sendTo(child, 'start');
+        child.once('started', onChildStarted);
+    }
+
+    function onChildStarted( ) {
         callbackOnce(null, child);
     }
 
@@ -385,13 +392,12 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
             return callback(err, newChild);
         }
         else {
-            // 'ready', 'started' or 'listening'
-            // tyipcally the worker sends 'ready', tell it to start
-            // workers that send 'listening' should ignore 'start'
-            // if the child did not already start ('started' or 'listening'), tell it to
-            if (!newChild._isStarted) qcluster.sendTo(newChild, 'start');
+            // forkChild already started the child, it is 'started' or 'listening'
         }
     })
+
+    // if no child, omit setup; forkChild callback returns the error
+    if (!newChild) return;
 
     /*
      * Ideally we would like full hanshaking, telling the worker to transition
@@ -405,14 +411,10 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
      * should be at most a few milliseconds.
      */
 
-    if (newChild) {
-        // wait for the new child to indicate that it started
-        // TODO: newChild.on('started')
-        // the newly forked child will not have signaled yet
-        newChild.once('started', onStarted);
-        if (this.startedIfListening) newChild.once('listening', onStarted);
-    }
-
+    // wait for the newly created child to indicate that it started
+    // we use the event and not the callback to more quickly be able to stop the old worker
+    newChild.once('started', onStarted);
+    if (this.startedIfListening) newChild.once('listening', onStarted);
 
     function onStarted() {
         // new child is online and listening for requests, old child should stop
@@ -425,6 +427,7 @@ QCluster.prototype._doReplaceChild = function _doReplaceChild( oldChild, callbac
         // immediately when replacement is ready and listening, stop the old worker
         // Once old worker closes all listened-on sockets, it will get no more requests,
         // but until then for a few ms both old and new worker are sent requests.
+        // To avoid the overlap, 'disconnect' old worker as soon as new is 'listening'.
         //
         self.stopChild(oldChild, function(err) {
             if (err && !self.disconnectIfStop) {
@@ -545,10 +548,6 @@ qcluster = {
                             if (err) forkErrors.push(err);
                             if (forkCount == options.clusterSize) {
                                 if (forkErrors.length) return cb(forkErrors[0], forkErrors);
-                                for (var i=0; i<qm.children.length; i++) qcluster.sendTo(qm.children[i], 'start');
-                                // TODO: only send 'start' if ! children[i]._isStarted
-                                // TODO: returns before workers have started listening
-                                // TODO: time out 'started' response
                                 return cb();
                             }
                         })

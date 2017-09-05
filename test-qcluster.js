@@ -402,6 +402,17 @@ module.exports = {
             t.equal(spy.getAllArguments()[2][0], 'exit');
             t.done();
         },
+
+        'should not listen for started if already _isStarted': function(t) {
+            var qm = qcluster.createCluster();
+            var child = mockChild();
+            child._isStarted = true;
+            var spy = t.spyOnce(qm, 'once');
+            qm.startChild(child, function(){
+                t.equal(spy.callCount, 0);
+                t.done();
+            })
+        },
     },
 
     'stopChild': {
@@ -693,7 +704,9 @@ module.exports = {
 
         'should fork child': function(t) {
             this.runTest('fork-child', function(err, output) {
-                t.contains(output, 'child process running.\n');
+                t.contains(output, 'child running');
+                t.contains(output, 'child got start');
+                t.contains(output, 'child got stop');
                 t.done();
             })
         },
@@ -704,6 +717,17 @@ module.exports = {
                 t.contains(output, 'child 1 exists: true');
                 t.contains(output, 'child 2 exists: true');
                 t.contains(output, 'child 3 exists: true');
+                t.done();
+            })
+        },
+
+        'should fork listening': function(t) {
+            this.runTest('fork-listening', function(err, output) {
+                t.contains(output, 'parent got child');
+                t.contains(output, 'child running');
+                t.contains(output, 'child got disconnect');
+                t.notContains(output, 'child got start');
+                t.notContains(output, 'child got stop');
                 t.done();
             })
         },
