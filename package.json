@@ -12,7 +12,7 @@
     "qnit": "0.18.0"
   },
   "scripts": {
-    "test": "qnit test-*",
+    "test": "qnit -t 4000 test-*",
     "coverage": "nyc --include qcluster.js --reporter text --reporter lcov qnit --timeout 10000 test-*",
     "clean": "rm -rf .nyc_output coverage"
   }
