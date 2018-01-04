@@ -343,9 +343,9 @@ QCluster.prototype.cancelReplace = function cancelReplace( child ) {
 }
 
 QCluster.prototype.replaceChild = function replaceChild( oldChild, callback ) {
+    if (!callback) throw new Error("callback required");
     if (!oldChild) return callback(new Error("no child"));
     if (!(oldChild._pid > 0)) return callback(new Error("not our child"));
-    if (!callback) throw new Error("callback required");
 
     this._replaceQueue.push({ child: oldChild, cb : callback });
 
