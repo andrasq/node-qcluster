@@ -281,6 +281,13 @@ The message format is
   receiving more calls, finish processing all pending requests, and only then exit.
 
 
+## Change Log
+
+- 0.8.2 - make replaceChild tolerate no callback, make stopChild tolerate an already exited
+          process
+- 0.8.0 - make startChild / forkChild wait for the process to be ready to serve requests
+          before returning
+
 ## Todo
 
 - rename `forkChild` -> `startChild`
