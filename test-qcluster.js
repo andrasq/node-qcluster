@@ -326,6 +326,7 @@ module.exports = {
                     var child = qm.forkChild();
                 }
                 catch (err) {
+                    t.equals(spy.callCount, 1);
                     t.contains(err.message, 'unable to fork');
                     t.done();
                 }
@@ -336,6 +337,7 @@ module.exports = {
                 var spy = t.stubOnce(cluster, 'fork', function(){ return null });
                 qm.forkChild(function(err, child) {
                     t.ok(err);
+                    t.equals(spy.callCount, 1);
                     t.contains(err.message, 'unable to fork');
                     t.done();
                 })
@@ -430,6 +432,23 @@ module.exports = {
                 qm.stopChild(mockChild());
             }, 'callback required');
             t.done();
+        },
+
+        'should stop an already exited child': function(t) {
+            var qm = qcluster.createCluster();
+            var child = child_process.exec("sleep 10");
+            child.kill();
+            qm.stopChild(child, function(err, ret) {
+                if (err) return t.done(err);
+                t.equal(ret, child);
+                t.ok(child.killed);
+                qm.stopChild(child, function(err, ret) {
+                    if (err) return t.done(err);
+                    t.equal(ret, child);
+                    t.ok(child.killed);
+                    t.done();
+                })
+            })
         },
     },
 

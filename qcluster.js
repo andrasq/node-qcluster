@@ -289,6 +289,9 @@ QCluster.prototype.stopChild = function stopChild( child, callback ) {
     if (!child) throw new Error("no child");
     if (!callback) throw new Error("callback required");
 
+    // if child does not exist (already exited), just return
+    if (child.killed || child.exitCode !== undefined) return callback(null, child);
+
     var callbackOnce = callOnce(callback, function() {
         // delay removing the listeners to be able to test the call-once mutexing
         // even that leaves a race that sometimes gets only one message through
