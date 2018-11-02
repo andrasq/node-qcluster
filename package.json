@@ -11,7 +11,7 @@
   "dependencies": {
   },
   "devDependencies": {
-    "qnit": "0.18.0"
+    "qnit": "0.25.1"
   },
   "scripts": {
     "test": "qnit -t 4000 test-*",
