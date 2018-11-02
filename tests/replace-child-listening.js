@@ -20,11 +20,11 @@ if (qcluster.isMaster) {
             console.log("child2 pid %d", child2._pid);
 
             // after replace, expect child2 to be connected and child1 to not
-            console.log("after replace, child1 connected =", !child1.suicide);
-            console.log("after replace, child2 connected =", !child2.suicide);
+            console.log("after replace, child1 connected =", isConnected(child1));
+            console.log("after replace, child2 connected =", isConnected(child2));
 
             qm.stopChild(child2, function(){
-                console.log("after stop, child2 connected =", !child2.suicide);
+                console.log("after stop, child2 connected =", isConnected(child2));
             })
         })
     })
@@ -36,4 +36,10 @@ else {
     qcluster.sendToParent('listening');
 
     // child waits for 'disconnect' then exits
+}
+
+function isConnected( child ) {
+    // node-v9 and up no longer maintain the .suicide or .connected fields
+    // states can be [ 'none', 'online', 'listening', 'disconnected', 'dead' ]
+    return child.connected || child.state === 'online' || child.state === 'listening';
 }
