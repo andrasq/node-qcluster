@@ -3,7 +3,10 @@ node_js:
   - 0.10
   - 6
   - 8
+  - 10
+  - 11
 after_success:
+  - if [ `node -p 'process.version.slice(0, 3)'` != "v8." ]; then exit; fi
   - npm install -g nyc
   - npm install -g codecov
   - nyc --reporter lcov --include qcluster.js npm test && codecov
