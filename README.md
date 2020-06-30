@@ -283,7 +283,7 @@ The message format is
 ## Testing
 
 To run the tests, check out the repo.  The test tools are installed by the CI script and
-are not part of the sources (`npm install -g qnit nyc`).
+are not part of the sources (`npm install qnit nyc`).
 
 
 ## Change Log
