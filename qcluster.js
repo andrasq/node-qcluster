@@ -601,6 +601,6 @@ QCluster.prototype.disconnectFrom = QCluster.disconnectFrom;
 QCluster.prototype.disconnectFromParent = QCluster.disconnectFromParent;
 QCluster.prototype.isQMessage = QCluster.isQMessage;
 
-QCluster.prototype = QCluster.prototype;
+(function(){ QCluster.prototype = QCluster.prototype; })();
 
 module.exports = qcluster;

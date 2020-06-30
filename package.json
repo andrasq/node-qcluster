@@ -1,12 +1,13 @@
 {
   "name": "qcluster",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "robust worker cluster management",
   "main": "qcluster.js",
   "license": "Apache-2.0",
   "keywords": [ "robust", "cluster", "Andras", "race-free", "deterministic" ],
   "repository": "https://github.com/andrasq/node-qcluster",
   "readme": "see README.md in the repo root",
+  "files": ["qcluster.js", "README.md", "LICENSE"],
 
   "dependencies": {
   },
