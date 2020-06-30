@@ -1,8 +1,7 @@
 qcluster
 ========
-
-[![Build Status](https://api.travis-ci.org/andrasq/node-qcluster.svg?branch=master)](https://travis-ci.org/andrasq/node-qcluster?branch=master)
-[![Coverage Status](https://codecov.io/github/andrasq/node-qcluster/coverage.svg?branch=master)](https://codecov.io/github/andrasq/node-qcluster?branch=master)
+[![Build Status](https://travis-ci.org/andrasq/node-qcluster.svg?branch=master)](https://travis-ci.org/andrasq/node-qcluster)
+[![Coverage Status](https://coveralls.io/repos/github/andrasq/node-qcluster/badge.svg?branch=master)](https://coveralls.io/github/andrasq/node-qcluster?branch=master)
 
 Robust work cluster management.
 
@@ -279,6 +278,12 @@ The message format is
 - If a worker disconnects before it has finished processing all requests, some calls
   could be lost.  To shut down cleanly, it should close its listened-on socket to stop
   receiving more calls, finish processing all pending requests, and only then exit.
+
+
+## Testing
+
+To run the tests, check out the repo.  The test tools are installed by the CI script and
+are not part of the sources (`npm install -g qnit nyc`).
 
 
 ## Change Log

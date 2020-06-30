@@ -7,8 +7,10 @@ node_js:
   - 11
   - 12
   - 13
+before_install:
+  - npm install -g qnit
 after_success:
   - if [ `node -p 'process.version.slice(0, 3)'` != "v8." ]; then exit; fi
-  - npm install -g nyc
-  - npm install -g codecov
-  - nyc --reporter lcov --include qcluster.js npm test && codecov
+  - npm install -g nyc coveralls
+  - nyc -r text --reporter lcov npm test
+  - nyc report -r text-lcov | coveralls

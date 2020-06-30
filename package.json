@@ -12,8 +12,8 @@
   "dependencies": {
   },
   "devDependencies": {
-    "qnit": "0.25.1"
   },
+
   "scripts": {
     "test": "qnit -t 4000 test-*",
     "coverage": "nyc --include qcluster.js --reporter text --reporter lcov qnit --timeout 10000 test-*",
