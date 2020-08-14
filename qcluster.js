@@ -51,7 +51,7 @@ QCluster.sendTo = function sendTo( target, name, value ) {
     // parent sends to target = child, child sends to target = process
     // In both cases, the pid is the child process pid.
     try {
-        var pid = target._pid || target.pid;
+        var pid = target._pid || target.pid || (target.process && target.process.pid);
         var msg = { v: 'qc-1', pid: pid, n: name, m: value };
         target.send(msg);
     }
