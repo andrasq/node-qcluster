@@ -164,6 +164,15 @@ module.exports = {
             t.contains(message, { v: 'qc-1', pid: 12345, n: 'name-string', m: { val: 'value' } });
             t.done();
         },
+
+        'should include the target pid in the message': function(t) {
+            var message;
+            var target = { pid: 23456, send: function(m) { message = m } };
+            qcluster.sendTo(target, 'name-string', {val: 'value'});
+            t.ok(qcluster.isQMessage(message));
+            t.contains(message, { v: 'qc-1', pid: 23456, n: 'name-string', m: { val: 'value' } });
+            t.done();
+        },
     },
 
     'handleSignals': {

@@ -2,7 +2,7 @@
  * qcluster -- easier nodejs cluster management
  * (see also node-docs/robust-cluster.md)
  *
- * Copyright (C) 2017-2018 Andras Radics
+ * Copyright (C) 2017-2018,2020 Andras Radics
  * Licensed under the Apache License, Version 2.0
  */
 
